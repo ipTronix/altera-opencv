@@ -1,7 +1,7 @@
 inherit kernel
 SECTION = "kernel"
 DESCRIPTION = "Altera Linux kernel"
-LICENSE = "GPL"
+LICENSE = "GPLv2"
 
 COMPATIBLE_MACHINE = "socfpga"
 
