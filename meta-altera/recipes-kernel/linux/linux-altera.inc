@@ -5,15 +5,11 @@ LICENSE = "GPLv2"
 
 COMPATIBLE_MACHINE = "socfpga"
 
-KMACHINE = "socfpga_cyclone5"
-KBRANCH = "${KMACHINE}-${LINUX_VERSION}"
+KBRANCH = "${MACHINE}-${LINUX_VERSION}"
 
 MACHINE_DEFCONFIG = "socfpga_defconfig"
 
-DEVICE_TREE_TARGET = "${KMACHINE}.dtb"
-DEVICE_TREE_OUTPUT = "arch/${ARCH}/boot/${DEVICE_TREE_TARGET}"
-DEVICE_TREE_BASE_NAME = "${KMACHINE}-${PV}-${PR}-${DATETIME}"
-DEVICE_TREE_SYMLINK_NAME = "${KMACHINE}"
+DEVICE_TREE_TARGET = "${MACHINE}.dtb"
 
 INITRAMFS_IMAGE_FILE ?= "${INITRAMFS_IMAGE}-${MACHINE}.cpio"
 
@@ -64,10 +60,23 @@ do_compile_dtb() {
 addtask compile_dtb after do_compile before do_build
 
 do_deploy_dtb() {
-        install -m 0644 ${DEVICE_TREE_OUTPUT} ${DEPLOY_DIR_IMAGE}/${DEVICE_TREE_BASE_NAME}.dtb
-        cd ${DEPLOY_DIR_IMAGE}
-        rm -f ${DEVICE_TREE_SYMLINK_NAME}.bin
-        ln -sf ${DEVICE_TREE_BASE_NAME}.dtb ${DEVICE_TREE_SYMLINK_NAME}.dtb
+    if test -n "${KERNEL_DEVICETREE}"; then
+        for DTS_FILE in ${KERNEL_DEVICETREE}; do
+            if [ ! -f ${DTS_FILE} ]; then
+                echo "Warning: ${DTS_FILE} is not available!"
+                continue
+            fi
+	    DEVICE_TREE_OUTPUT = "arch/${ARCH}/boot/${DEVICE_TREE_TARGET}"
+            DTS_BASE_NAME=`basename ${DTS_FILE} | awk -F "." '{print $1}'`
+            DTB_NAME=`echo ${KERNEL_IMAGE_BASE_NAME} | sed "s/${MACHINE}/${DTS_BASE_NAME}/g"`
+	    DTB_SYMLINK_NAME = "${MACHINE}"
+            install -m 0644 ${DEVICE_TREE_OUTPUT} ${DEPLOY_DIR_IMAGE}/${DTB_NAME}.dtb
+            cd ${DEPLOY_DIR_IMAGE}
+            rm -f ${DTB_SYMLINK_NAME}.bin
+            ln -sf ${DTB_NAME}.dtb ${DTB_SYMLINK_NAME}.dtb
+            cd -
+       done
+    fi
 }
 
 addtask deploy_dtb after do_compile_dtb before do_build

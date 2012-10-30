@@ -8,5 +8,5 @@ clear_root_password () {
         mv ${IMAGE_ROOTFS}/etc/passwd.new ${IMAGE_ROOTFS}/etc/passwd
 }
 
-IMAGE_DEVICE_TABLES += " files/socfpga5xs1_device_table.txt "
+IMAGE_DEVICE_TABLES += " files/socfpga_cyclone5_device_table.txt "
 
