@@ -1,9 +1,6 @@
 require recipes-kernel/linux/linux-altera.inc
 
-LINUX_VERSION ?= "3.6"
-
 PR = "r1"
-PV = "${LINUX_VERSION}"
 
 SRC_URI = "http://open-source.altera.com/linux-altera-3.6.tgz;__LINUX_CHECKSUMS__"
 LIC_FILES_CHKSUM = "file://${S}/COPYING;md5=d7810fab7487fb0aad327b76f1be7cd7"

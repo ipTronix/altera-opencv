@@ -66,10 +66,10 @@ do_deploy_dtb() {
                 echo "Warning: ${DTS_FILE} is not available!"
                 continue
             fi
-	    DEVICE_TREE_OUTPUT = "arch/${ARCH}/boot/${DEVICE_TREE_TARGET}"
+	    DEVICE_TREE_OUTPUT="arch/${ARCH}/boot/${DEVICE_TREE_TARGET}"
             DTS_BASE_NAME=`basename ${DTS_FILE} | awk -F "." '{print $1}'`
             DTB_NAME=`echo ${KERNEL_IMAGE_BASE_NAME} | sed "s/${MACHINE}/${DTS_BASE_NAME}/g"`
-	    DTB_SYMLINK_NAME = "${MACHINE}"
+	    DTB_SYMLINK_NAME="${MACHINE}"
             install -m 0644 ${DEVICE_TREE_OUTPUT} ${DEPLOY_DIR_IMAGE}/${DTB_NAME}.dtb
             cd ${DEPLOY_DIR_IMAGE}
             rm -f ${DTB_SYMLINK_NAME}.bin

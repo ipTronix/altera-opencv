@@ -3,8 +3,6 @@ LICENSE = "GPLv2+"
 LIC_FILES_CHKSUM = "file://${S}/COPYING;startline=26;md5=1707d6db1d42237583f50183a5651ecb"
 SECTION = "bootloader"
 
-UBOOT_VERSION = "altera-2012.07"
-PV = "${UBOOT_VERSION}"
 PR = "r0"
 
 SRC_URI = "http://open-source.altera.com/u-boot-${PV}.tgz;__UBOOT_CHECKSUMS__"
