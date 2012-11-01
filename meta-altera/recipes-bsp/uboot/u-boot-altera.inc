@@ -3,8 +3,6 @@ HOMEPAGE = "http://www.altera.com/"
 SECTION = "bootloaders"
 PROVIDES = "virtual/bootloader"
 
-PV = "altera-${UBOOT_VERSION}"
-
 SRC_URI = "http://open-source.altera.com/${PN}-${PV}.tgz"
 S = "${WORKDIR}/${PN}-${PV}"
 
