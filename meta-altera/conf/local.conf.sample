@@ -50,7 +50,8 @@ TCLIBCAPPEND = ""
 #MACHINE ?= "routerstationpro"
 #
 # This sets the default machine to be qemux86 if no other machine is selected:
-MACHINE ??= "socfpga_cyclone5"
+#MACHINE ??= "socfpga_cyclone5"
+MACHINE ??= "socfpga_vtdev"
 
 #
 # Where to place downloads
