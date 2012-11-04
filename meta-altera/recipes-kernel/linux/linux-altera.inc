@@ -54,7 +54,7 @@ do_compile_dtb() {
         unset CFLAGS CPPFLAGS CXXFLAGS LDFLAGS MACHINE
         export CROSS_COMPILE="${TARGET_PREFIX}"
         export ARCH=${ARCH}
-        oe_runmake ${DEVICE_TREE_TARGET}
+        oe_runmake dtbs
 }
 
 addtask compile_dtb after do_compile before do_build
