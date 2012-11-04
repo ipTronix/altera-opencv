@@ -241,7 +241,7 @@ INHERIT += "own-mirrors"
 
 # INITRAMFS_IMAGE is the image recipe to be used as kernel's initramfs 
 # If not set, initramfs image will not be built into kernel image
-INITRAMFS_IMAGE = "core-image-minimal-initramfs"
+INITRAMFS_IMAGE = "core-image-altera"
 
 # Disable the network connectivity check
 CONNECTIVITY_CHECK_URIS = ""
