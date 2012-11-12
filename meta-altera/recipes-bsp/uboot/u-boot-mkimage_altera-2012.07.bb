@@ -5,7 +5,9 @@ SECTION = "bootloader"
 
 PR = "r0"
 
-SRC_URI = "http://open-source.altera.com/u-boot-${PV}.tgz;__UBOOT_CHECKSUMS__"
+SRC_URI = "http://open-source.altera.com/u-boot-${PV}.tgz"
+SRC_URI[md5sum] = "__UBOOT_MD5SUM__"
+SRC_URI[sha256sum] = "__UBOOT_SHA256SUM__"
 
 S = "${WORKDIR}/u-boot-${PV}"
 
