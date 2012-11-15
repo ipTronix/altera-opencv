@@ -60,6 +60,7 @@ do_compile_dtb() {
 addtask compile_dtb after do_compile before do_build
 
 do_deploy_dtb() {
+    install -d 0644 ${DEPLOY_DIR_IMAGE}
     if test -n "${KERNEL_DEVICETREE}"; then
         for DTS_FILE in ${KERNEL_DEVICETREE}; do
             if [ ! -f ${DTS_FILE} ]; then
