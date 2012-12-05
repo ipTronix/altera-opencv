@@ -5,15 +5,17 @@ IMAGE_LINGUAS = " "
 
 LICENSE = "MIT"
 
-inherit core-image
-
 IMAGE_ROOTFS_SIZE = "8192"
 
 # remove not needed ipkg informations
 ROOTFS_POSTPROCESS_COMMAND += "remove_packaging_data_files ; "
 
-CORE_IMAGE_EXTRA_INSTALL = "initramfs-altera tinylogin sysvinit initscripts e2fsprogs mtd-utils gcc gdb bash strace openssh openssl elfutils sysfsutils usbutils dtc gawk ethtool grep lighttpd iputils make pciutils portmap sed setserial wget autoconf diffutils perl sysklogd minicom valgrind i2c-tools"
+IMAGE_INSTALL = "initramfs-altera tinylogin sysvinit initscripts e2fsprogs mtd-utils gcc gdb bash strace openssh openssl elfutils sysfsutils usbutils dtc gawk ethtool grep lighttpd iputils make pciutils portmap sed setserial wget autoconf diffutils perl sysklogd minicom valgrind i2c-tools"
 #nfs-utils lttng-modules lttng-tools iptables oprofile net-tools python systemtap 
+
+IMAGE_FEATURES = ""
+
+inherit core-image
 
 ROOTFS_POSTPROCESS_COMMAND += "clear_root_password ; "
 
