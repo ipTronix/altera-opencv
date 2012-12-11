@@ -242,3 +242,26 @@ INHERIT += "own-mirrors"
 # Disable the network connectivity check
 CONNECTIVITY_CHECK_URIS = ""
 
+#
+# IMAGE_INSTALL - setting this overrides the list of packages installed in the filesystem. 
+#     This is tested for core-image-altera, but will not necessarily work for 
+#     other filesystems
+#
+#IMAGE_INSTALL = "initramfs-altera busybox base-passwd base-files tinylogin sysvinit initscripts"
+
+#
+# INITRAMFS_IMAGE - this selects what filesystem you want as an initramfs. Not setting 
+#     this will cause no initramfs to be built into uImage. After setting this for the
+#     first time sure to run bitbake -f -c configure virtual/kernel in order to set Linux
+#     to build with an initramfs. Same goes for clearing this.
+#INITRAMFS_IMAGE = "core-image-altera"
+
+#
+# Setting the following variables will enable the use of the Linaro toolchain. If not set
+#     you will build using gcc built by Yocto. EXTERNAL_TOOLCHAIN must be set to the path
+#     where the linaro toolchain exists and should have subdirectories named lib, bin, etc
+#
+#TCLIBC = "external-linaro-toolchain"
+#TCMODE = "external-linaro"
+#EXTERNAL_TOOLCHAIN = "~/linaro/tools/"
+
