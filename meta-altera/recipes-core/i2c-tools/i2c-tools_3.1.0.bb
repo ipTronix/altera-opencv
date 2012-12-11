@@ -27,3 +27,4 @@ inherit pkgconfig
 
 FILES_${PN} = "/usr/local/sbin/i2c*"
 
+INSANE_SKIP_i2c-tools += "installed_vs_shipped"
