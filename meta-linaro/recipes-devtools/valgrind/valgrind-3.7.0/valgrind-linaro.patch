@@ -1,0 +1,14 @@
+author: Jim Rucker
+patch to get valgrind to work under the linaro toolchain
+
+--- a/configure.in	2012-12-11 13:08:28.813890297 -0600
++++ b/configure.in	2012-12-11 13:11:41.017885524 -0600
+@@ -106,7 +106,7 @@ 
+ # i686-apple-darwin11-llvm-gcc-4.2 (GCC) 4.2.1 (Based on Apple Inc. build 5658) (LLVM build 2335.15.00)
+ # ARCH-VENDOR-OS-gcc (GCC) VERSION Copyright
+ #
+-[gcc_version=`${CC} --version \
++[gcc_version=`${CC} -dumpversion \
+              | head -n 1 \
+              | $SED 's/i686-apple-darwin10//' \
+              | $SED 's/i686-apple-darwin11//' \

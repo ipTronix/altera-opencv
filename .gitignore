@@ -16,3 +16,4 @@ meta-*
 !meta-yocto
 !meta-yocto-bsp
 !meta-altera
+!meta-linaro

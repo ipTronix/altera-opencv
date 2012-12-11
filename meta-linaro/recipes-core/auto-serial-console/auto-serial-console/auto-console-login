@@ -1,0 +1,6 @@
+#!/bin/sh
+
+PATH=/sbin:/bin:/usr/sbin:/usr/bin
+
+# Start auto-login for root at consoles
+exec openvt -c 1 -- /usr/bin/auto-root-login
