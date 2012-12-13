@@ -50,8 +50,8 @@ TCLIBCAPPEND = ""
 #MACHINE ?= "routerstationpro"
 #
 # This sets the default machine to be qemux86 if no other machine is selected:
-#MACHINE ??= "socfpga_cyclone5"
-MACHINE ??= "socfpga_vt"
+#MACHINE ??= "socfpga_vt"
+MACHINE ??= "socfpga_cyclone5"
 
 #
 # Where to place downloads
@@ -261,7 +261,7 @@ CONNECTIVITY_CHECK_URIS = ""
 #     you will build using gcc built by Yocto. EXTERNAL_TOOLCHAIN must be set to the path
 #     where the linaro toolchain exists and should have subdirectories named lib, bin, etc
 #
-#TCLIBC = "external-linaro-toolchain"
-#TCMODE = "external-linaro"
-#EXTERNAL_TOOLCHAIN = "~/linaro/tools/"
+TCLIBC = "external-linaro-toolchain"
+TCMODE = "external-linaro"
+EXTERNAL_TOOLCHAIN = "~/linaro/tools/"
 
