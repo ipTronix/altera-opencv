@@ -1,6 +1,7 @@
 require recipes-core/eglibc/eglibc-package.inc
 
 INHIBIT_DEFAULT_DEPS = "1"
+INHIBIT_PACKAGE_DEBUG_SPLIT = "1"
 
 # License applies to this recipe code, not the toolchain itself
 LICENSE = "MIT"
@@ -55,7 +56,7 @@ do_install() {
 	rm -r ${D}${includedir}/${ELT_TARGET_SYS}
 
 	# fix up the copied symlinks (they are still pointing to the multiarch directory)
-	ln -sf ld-2.13.so ${D}${base_libdir}/ld-linux.so.3
+	ln -sf ld-2.15.so ${D}${base_libdir}/ld-linux.so.3
 	ln -sf ../../lib/libnsl.so.1 ${D}${libdir}/libnsl.so
 	ln -sf ../../lib/librt.so.1 ${D}${libdir}/librt.so
 	ln -sf ../../lib/libcrypt.so.1 ${D}${libdir}/libcrypt.so
@@ -88,6 +89,7 @@ PACKAGES =+ "\
 	linux-libc-headers-dev \
 "
 
+INSANE_SKIP_${PN}[installed_vs_shipped] = "1"
 INSANE_SKIP_${PN} = "ldflags"
 INSANE_SKIP_${PN}-dbg = "staticdev"
 INSANE_SKIP_${PN}-utils += "ldflags"
