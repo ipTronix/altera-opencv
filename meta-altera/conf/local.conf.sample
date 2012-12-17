@@ -243,18 +243,18 @@ INHERIT += "own-mirrors"
 CONNECTIVITY_CHECK_URIS = ""
 
 #
-# IMAGE_INSTALL - setting this overrides the list of packages installed in the filesystem. 
-#     This is tested for core-image-altera, but will not necessarily work for 
-#     other filesystems
+# IMAGE_INSTALL - Setting these will override the list of packages installed in the 
+#  filesystems. This default list of packages can be found in meta-altera/recipes-core/images
 #
-#IMAGE_INSTALL = "initramfs-altera busybox base-passwd base-files tinylogin sysvinit initscripts"
+#ALTERA_IMAGE_INSTALL = "initramfs-altera busybox base-passwd base-files tinylogin sysvinit initscripts"
+#ALTERA_MINIMAL_IMAGE_INSTALL = ""
 
 #
 # INITRAMFS_IMAGE - this selects what filesystem you want as an initramfs. Not setting 
 #     this will cause no initramfs to be built into uImage. After setting this for the
 #     first time sure to run bitbake -f -c configure virtual/kernel in order to set Linux
 #     to build with an initramfs. Same goes for clearing this.
-#INITRAMFS_IMAGE = "core-image-altera"
+#INITRAMFS_IMAGE = "altera-image-minimal"
 
 #
 # Setting the following variables will enable the use of the Linaro toolchain. If not set
