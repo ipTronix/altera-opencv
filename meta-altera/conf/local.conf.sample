@@ -236,7 +236,7 @@ CONF_VERSION = "1"
 
 # Premirrors reduces download time and bandwidth usage by downloading files from 
 # alternate locations, especially from internal file/web servers.
-SOURCE_MIRROR_URL = "file://__DEST_DIR__"
+SOURCE_MIRROR_URL = "file://__INSTALL_DIR__/sources/"
 INHERIT += "own-mirrors"
 
 # Disable the network connectivity check
@@ -263,5 +263,5 @@ CONNECTIVITY_CHECK_URIS = ""
 #
 TCLIBC = "external-linaro-toolchain"
 TCMODE = "external-linaro"
-EXTERNAL_TOOLCHAIN = "~/linaro/tools/"
+EXTERNAL_TOOLCHAIN = "__INSTALL_DIR__/linaro/gcc-linaro-arm-linux-gnueabihf-4.7-2012.11-20121123_linux"
 
