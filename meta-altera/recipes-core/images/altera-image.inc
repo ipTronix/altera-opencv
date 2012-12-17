@@ -11,7 +11,6 @@ ROOTFS_POSTPROCESS_COMMAND += "remove_packaging_data_files ; "
 
 # Set root password to blank
 zap_root_password () {
-        sed 's%^root:[^:]*:%root::%' < ${IMAGE_ROOTFS}/etc/passwd >${IMAGE_ROOTFS}/etc/passwd.new
-        mv ${IMAGE_ROOTFS}/etc/passwd.new ${IMAGE_ROOTFS}/etc/passwd
+        sed -i 's%^root:[^:]*:%root::%' ${IMAGE_ROOTFS}/etc/passwd 
 }
 
