@@ -89,8 +89,7 @@ PACKAGES =+ "\
 	linux-libc-headers-dev \
 "
 
-INSANE_SKIP_${PN}[installed_vs_shipped] = "1"
-INSANE_SKIP_${PN} = "ldflags"
+INSANE_SKIP_${PN} = "ldflags installed_vs_shipped"
 INSANE_SKIP_${PN}-dbg = "staticdev"
 INSANE_SKIP_${PN}-utils += "ldflags"
 INSANE_SKIP_libstdc++ += "ldflags"
