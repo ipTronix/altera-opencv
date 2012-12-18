@@ -6,7 +6,8 @@ LICENSE = "MIT"
 ALTERA_MINIMAL_IMAGE_INSTALL ?= "initramfs-altera busybox base-passwd base-files tinylogin sysvinit initscripts"
 IMAGE_INSTALL ?= "${ALTERA_MINIMAL_IMAGE_INSTALL}"
 
-include altera-image.inc
-
 inherit core-image
+
+# altera-image.inc must be included after inherit core-image to override functionality
+include altera-image.inc
 
