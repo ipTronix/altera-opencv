@@ -13,10 +13,6 @@ SRC_URI[sha256sum] = "960023f61de292c6dd757fcedec4bffa7dd036e8594e24b26a706094ca
 
 S = "${WORKDIR}/${PN}-${PV}"
 
-do_compile () {
-   make
-}
-
 do_install () {
    make install DESTDIR=${D}
    rm -r ${D}/usr/local/bin 
