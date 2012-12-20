@@ -7,13 +7,8 @@ COMPATIBLE_MACHINE = "socfpga"
 
 KBRANCH = "${MACHINE}-${LINUX_VERSION}"
 
-MACHINE_DEFCONFIG = "socfpga_defconfig"
-
-DEVICE_TREE_TARGET = "${MACHINE}.dtb"
-
-INITRAMFS_IMAGE_FILE ?= "${INITRAMFS_IMAGE}-${MACHINE}.cpio"
-
 do_configure() {
+	export INITRAMFS_IMAGE_FILE="${INITRAMFS_IMAGE}-${MACHINE}.cpio"
 
 	unset CFLAGS CPPFLAGS CXXFLAGS LDFLAGS MACHINE
 	export CROSS_COMPILE="${TARGET_PREFIX}"
@@ -67,7 +62,7 @@ do_deploy_dtb() {
                 echo "Warning: ${DTS_FILE} is not available!"
                 continue
             fi
-	    DEVICE_TREE_OUTPUT="arch/${ARCH}/boot/${DEVICE_TREE_TARGET}"
+	    DEVICE_TREE_OUTPUT="arch/${ARCH}/boot/${MACHINE}.dtb"
             DTS_BASE_NAME=`basename ${DTS_FILE} | awk -F "." '{print $1}'`
             DTB_NAME="${MACHINE}-${DATETIME}"
 	    DTB_SYMLINK_NAME="${MACHINE}"
