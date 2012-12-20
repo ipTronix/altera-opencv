@@ -53,9 +53,12 @@
 /dev/loop	b	640	0	0	7	0	0	1	2
 /dev/misc/rtc	c	640	0	0	10	135	-	-	-
 /dev/console	c	666	0	0	5	1	-	-	-
+
 /dev/tty	c	666	0	0	5	0	-	-	-
-/dev/tty	c	666	0	0	4	0	0	1	8
-/dev/fb		c	640	0	5	29	0	0	1	4
+/dev/tty	c	666	0	0	4	0	0	1	2
+/dev/ttyS	c	640	0	0	4	0	0	1	1
+
+/dev/fb		c	640	0	5	29	0	0	1	1
 /dev/psaux	c	666	0	0	10	1	0	0	-
 
 # Input stuff
@@ -85,15 +88,15 @@
 
 # IDE Devices
 /dev/hda	b	640	0	0	3	0	0	0	-
-/dev/hda	b	640	0	0	3	1	1	1	8
-/dev/hdb	b	640	0	0	3	64	0	0	-
-/dev/hdb	b	640	0	0	3	65	1	1	8
+/dev/hda	b	640	0	0	3	1	1	1	4
+#/dev/hdb	b	640	0	0	3	64	0	0	-
+#/dev/hdb	b	640	0	0	3	65	1	1	4
 
 # SCSI Devices
 /dev/sda	b	640	0	0	8	0	0	0	-
-/dev/sda	b	640	0	0	8	1	1	1	8
+/dev/sda	b	640	0	0	8	1	1	1	4
 /dev/sdb	b	640	0	0	8	16	0	0	-
-/dev/sdb	b	640	0	0	8	17	1	1	8
+/dev/sdb	b	640	0	0	8	17	1	1	4
 
 # MMC
 /dev/mmcblk0	b	666	0	0	179	0	0	0	-
@@ -101,9 +104,9 @@
 
 # USB block devices (ub driver)
 /dev/uba	b	640	0	0	180	0	0	0	-
-/dev/uba	b	640	0	0	180	1	1	1	6
+/dev/uba	b	640	0	0	180	1	1	1	4
 /dev/ubb	b	640	0	0	180	8	0	0	-
-/dev/ubb	b	640	0	0	180	65	1	1	6
+/dev/ubb	b	640	0	0	180	65	1	1	4
 
 # I2C device nodes
 /dev/i2c-	c	666	0	0	89	0	0	1	4
