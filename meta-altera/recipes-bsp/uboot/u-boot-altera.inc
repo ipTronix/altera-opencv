@@ -3,9 +3,6 @@ HOMEPAGE = "http://www.altera.com/"
 SECTION = "bootloaders"
 PROVIDES = "virtual/bootloader"
 
-SRC_URI = "http://open-source.altera.com/${PN}-${PV}.tgz"
-S = "${WORKDIR}/${PN}-${PV}"
-
 inherit deploy
 
 PARALLEL_MAKE=""
