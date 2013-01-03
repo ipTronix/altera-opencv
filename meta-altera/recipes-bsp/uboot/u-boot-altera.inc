@@ -1,7 +1,7 @@
 DESCRIPTION = "U-boot bootloader for Altera socfpga_cyclone5"
 HOMEPAGE = "http://www.altera.com/"
 SECTION = "bootloaders"
-PROVIDES = "virtual/bootloader"
+PROVIDES = "virtual/bootloader u-boot"
 
 inherit deploy
 
