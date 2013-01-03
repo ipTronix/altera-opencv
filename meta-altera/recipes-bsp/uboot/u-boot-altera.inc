@@ -22,10 +22,12 @@ python () {
 UBOOT_IMAGE ?= "u-boot-${MACHINE}-${PV}-${PR}.bin"
 UBOOT_IMAGE_UIMAGE ?= "u-boot-${MACHINE}-${PV}-${PR}.img"
 UBOOT_IMAGE_SPL ?= "u-boot-spl-${MACHINE}-${PV}-${PR}.bin"
+UBOOT_ELF_SPL ?= "u-boot-spl-${MACHINE}-${PV}-${PR}"
 UBOOT_BINARY ?= "u-boot.bin"
 UBOOT_SYMLINK ?= "u-boot-${MACHINE}.bin"
 UBOOT_SYMLINK_UIMAGE ?= "u-boot-${MACHINE}.img"
 UBOOT_SYMLINK_SPL ?= "u-boot-spl-${MACHINE}.bin"
+UBOOT_SYMLINK_ELF_SPL ?= "u-boot-spl-${MACHINE}"
 UBOOT_MAKE_TARGET ?= "all"
 INC_PR = "r0"
 
@@ -42,6 +44,7 @@ do_compile () {
 do_install () {
     install -d ${D}/boot
     install ${S}/${UBOOT_BINARY} ${D}/boot/${UBOOT_IMAGE}
+    install ${S}/spl/u-boot-spl ${DEPLOYDIR}/${UBOOT_ELF_SPL}
     ln -sf ${UBOOT_IMAGE} ${D}/boot/${UBOOT_BINARY}
 }
 
@@ -59,6 +62,7 @@ do_deploy () {
 	ln -sf ${UBOOT_IMAGE_UIMAGE} ${UBOOT_SYMLINK_UIMAGE}
 	rm -f ${UBOOT_SYMLINK_SPL}
 	ln -sf ${UBOOT_IMAGE_SPL} ${UBOOT_SYMLINK_SPL}
-
+	rm -f ${UBOOT_SYMLINK_ELF_SPL}
+	ln -sf ${UBOOT_ELF_SPL} ${UBOOT_SYMLINK_ELF_SPL}
 }
 addtask deploy before do_build after do_compile
