@@ -77,3 +77,11 @@ do_deploy_dtb() {
 
 addtask deploy_dtb after do_compile_dtb before do_build
 
+VMLINUX_NAME ?= "vmlinux-${PV}-${PR}-${MACHINE}-${DATETIME}"
+
+kernel_do_deploy_append() {
+	install -m 0644 ${S}/vmlinux ${DEPLOYDIR}/${VMLINUX_NAME}
+	rm -f vmlinux
+	ln -sf ${VMLINUX_NAME} vmlinux
+}
+
