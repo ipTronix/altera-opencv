@@ -45,6 +45,15 @@ do_configure() {
 	fi	
 }
 
+kernel_do_compile() {
+        unset CFLAGS CPPFLAGS CXXFLAGS LDFLAGS MACHINE
+        oe_runmake __headers CC="${KERNEL_CC}" LD="${KERNEL_LD}"
+        oe_runmake ${KERNEL_IMAGETYPE_FOR_MAKE} ${KERNEL_ALT_IMAGETYPE} CC="${KERNEL_CC}" LD="${KERNEL_LD}" LOADADDR=0x8000
+        if test "${KERNEL_IMAGETYPE_FOR_MAKE}.gz" = "${KERNEL_IMAGETYPE}"; then
+                gzip -9c < "${KERNEL_IMAGETYPE_FOR_MAKE}" > "${KERNEL_OUTPUT}"
+        fi
+}
+
 do_compile_dtb() {
         unset CFLAGS CPPFLAGS CXXFLAGS LDFLAGS MACHINE
         export CROSS_COMPILE="${TARGET_PREFIX}"
