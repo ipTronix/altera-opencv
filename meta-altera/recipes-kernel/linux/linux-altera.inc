@@ -63,23 +63,23 @@ do_compile_dtb() {
 
 addtask compile_dtb after do_compile before do_build
 
+KERNEL_DEVICETREE = "socfpga_vt socfpga_cyclone5"
+
 do_deploy_dtb() {
     install -d ${DEPLOY_DIR_IMAGE}
+    cd ${DEPLOY_DIR_IMAGE}
     if test -n "${KERNEL_DEVICETREE}"; then
-        for DTS_FILE in ${KERNEL_DEVICETREE}; do
-            if [ ! -f ${DTS_FILE} ]; then
-                echo "Warning: ${DTS_FILE} is not available!"
+        for DTB_FILE in ${KERNEL_DEVICETREE}; do
+	    DTB_SYMLINK_NAME="${DTB_FILE}.dtb"
+	    DEVICE_TREE_OUTPUT="${S}/arch/${ARCH}/boot/${DTB_FILE}.dtb"
+            DTB_NAME="${DTB_FILE}-${DATETIME}.dtb"
+            if [ ! -f ${DEVICE_TREE_OUTPUT} ]; then
+                echo "Warning: ${DEVICE_TREE_OUTPUT} is not available!"
                 continue
             fi
-	    DEVICE_TREE_OUTPUT="arch/${ARCH}/boot/${MACHINE}.dtb"
-            DTS_BASE_NAME=`basename ${DTS_FILE} | awk -F "." '{print $1}'`
-            DTB_NAME="${MACHINE}-${DATETIME}"
-	    DTB_SYMLINK_NAME="${MACHINE}"
-            install -m 0644 ${DEVICE_TREE_OUTPUT} ${DEPLOY_DIR_IMAGE}/${DTB_NAME}.dtb
-            cd ${DEPLOY_DIR_IMAGE}
-            rm -f ${DTB_SYMLINK_NAME}.bin
-            ln -sf ${DTB_NAME}.dtb ${DTB_SYMLINK_NAME}.dtb
-            cd -
+            install -m 0644 ${DEVICE_TREE_OUTPUT} ${DTB_NAME}
+            rm -f ${DTB_SYMLINK_NAME}
+            ln -sf ${DTB_NAME} ${DTB_SYMLINK_NAME}
        done
     fi
 }
