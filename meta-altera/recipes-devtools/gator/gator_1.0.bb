@@ -11,7 +11,7 @@ inherit module
 SRC_URI = "git://git.linaro.org/git-ro/arm/ds5/gator.git;protocol=http"
 SRCREV="06ebd1eab0a782377611efee820bb57f09692cbf"
 INHIBIT_PACKAGE_DEBUG_SPLIT_${PN} = "1"
-INSANE_SKIP_${PN} += "ldflags"
+INSANE_SKIP_${PN}-dev += "ldflags"
 
 do_compile() {
 	echo "Using Custom compile step"
@@ -23,14 +23,14 @@ do_compile() {
 }
 
 do_install() {
-	LIB_DIR=${D}/${libdir}/modules
-	install -d ${LIB_DIR}
-	install -m 0644 ${S}/driver/gator.ko ${LIB_DIR}
 
 	INIT_DIR=${D}${sysconfdir}/init.d/
 	install -d ${INIT_DIR}
+	install -m 0644 ${S}/driver/gator.ko ${INIT_DIR}
         install -m 0755 ${S}/daemon/gatord ${INIT_DIR}/gatord
+	echo -e "#!/bin/bash\n/etc/init.d/gatord &" > ${INIT_DIR}/rungator.sh
+	chmod a+x ${INIT_DIR}/rungator.sh
 }
 
-FILES_${PN} = "${libdir}/modules/gator.ko ${sysconfdir}/init.d/gatord"
+FILES_${PN} = "${sysconfdir}/init.d/gator.ko ${sysconfdir}/init.d/gatord ${sysconfdir}/init.d/rungator.sh"
 
