@@ -11,7 +11,9 @@ inherit module
 SRC_URI = "git://git.linaro.org/git-ro/arm/ds5/gator.git;protocol=http"
 SRCREV="06ebd1eab0a782377611efee820bb57f09692cbf"
 INHIBIT_PACKAGE_DEBUG_SPLIT_${PN} = "1"
-INSANE_SKIP_${PN}-dev += "ldflags"
+INHIBIT_PACKAGE_DEBUG_SPLIT_${PN}-dev = "1"
+INSANE_SKIP_${PN}-dev += " ldflags"
+INSANE_SKIP_${PN} += " ldflags"
 
 do_compile() {
 	echo "Using Custom compile step"
