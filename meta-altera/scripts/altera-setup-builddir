@@ -91,6 +91,6 @@ You can now run 'bitbake <target>'
 
 Common targets are:
 	bitbake virtual/kernel
-	bitbake virtual/bootloader
+	bitbake altera-gsrd-image
 	bitbake altera-image
 EOM
