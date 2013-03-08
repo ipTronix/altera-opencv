@@ -8,7 +8,7 @@ case "$1" in
 	modprobe leds_gpio
 	/www/pages/cgi-bin/scroll_server &
 
-	IP=`ifconfig eth0 | head -n 2 | tail -n 1 | sed s/inet\ addr:// | sed s/\ Bcast.*//`
+	IP=`ifconfig eth0 | head -n 2 | tail -n 1 | sed s/inet\ addr:// | sed s/\ Bcast.*// | sed s/\ *//g`
 	IP_CHECK=`echo $IP | sed 's/\(\([0-9]\{1,3\}\)\.\)\{3\}\([0-9]\{1,3\}\)//g'`
 	if [ "$IP_CHECK" != "" ]; then
 		IP="No IP obtained"

@@ -67,6 +67,14 @@ Application to register interrupt and write simple interrupt service routine
 Detect user input from push button / DIP switch:
 	modprobe gpio_interrupt gpio_number=<n>
 
+When user presses the button or flips the dip switch, a message will be printed
+to kernel console.
+1. If the user connects to the console on board using serial connection,
+the message "Interrupt happened at gpio:<gpio_number>" will be printed on the
+console.
+2. If the user connects to the console on board using ssh, the message can be
+viewed from kernel log via "dmesg" command.
+
 User will need to get the GPIO number from /sys/class/gpio/ by using
 command 'ls'. E.g.
 
