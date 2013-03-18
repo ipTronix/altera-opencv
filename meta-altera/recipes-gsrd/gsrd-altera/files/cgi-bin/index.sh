@@ -89,9 +89,10 @@ do
 
 	if [ "$KEY" = "lcd_text" ]; then
 		printf '\e[2K' > /dev/ttyLCD0
-		VALUE=`echo $VALUE | sed -e's/%\([0-9A-F][0-9A-F]\)/\\\\\x\1/g'`
-		VALUE=`echo -e $VALUE`
-		VALUE=`echo $VALUE | sed 's/+/ /g' | sed 's/%/%%/g'`
+		VALUE=`echo "$VALUE" | sed 's/+/ /g'`
+		VALUE=`echo "$VALUE" | sed -e's/%\([0-9A-F][0-9A-F]\)/\\\\\x\1/g'`
+		VALUE=`echo -e "$VALUE"`
+		VALUE=`echo "$VALUE" | sed 's/%/%%/g' | sed 's/\\\\/\\\\\\\\/g'`
 		printf "$VALUE" > /dev/ttyLCD0
 	fi
 
