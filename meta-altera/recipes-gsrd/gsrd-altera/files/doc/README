@@ -38,7 +38,7 @@ These examples serve as references for users to write their own applications
 to interact with soft IP through driver developed.
 
 The source codes of these applications can be found from the installation path
-of BSX (<Yocto_install_path>/meta-altera/recipes-gsrd/files).
+of BSX (<Yocto_install_path>/meta-altera/recipes-gsrd).
 
 The binaries of these applications can be found in /home/root/altera/. Please
 'cd' to /home/root/altera to execute these applications.
@@ -89,7 +89,7 @@ To confirm the n is associated to which peripheral, user needs to match the
 label of the GPIO chip to the address of push button and DIP switch in device
 tree (<Yocto_install_path>/meta-altera/recipes-gsrd/files/socfpga.dts).
 e.g.
-	root@socfpga-cyclone5~:# cat /sys/class/gpio/gpiochip246
+	root@socfpga-cyclone5~:# cat /sys/class/gpio/gpiochip246/label
 	/soc/gpio@0x100c0
 
 In this reference design, DIP switch is at address 0x10080 while the push button
