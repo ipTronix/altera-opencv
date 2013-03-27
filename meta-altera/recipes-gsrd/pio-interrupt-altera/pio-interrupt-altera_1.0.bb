@@ -1,6 +1,6 @@
 DESCRIPTION = "Altera GSRD pio interrupt module."
-LICENSE = "GPL-3.0"
-LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-3.0;md5=c79ff39f19dfec6d293b95dea7b07891"
+LICENSE = "GPL-2.0"
+LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/GPL-2.0;md5=801f80980d171dd6425610833a22dbe6"
 
 inherit module
 
