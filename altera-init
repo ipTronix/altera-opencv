@@ -31,7 +31,7 @@ else
    if [ -n "$BASH_SOURCE" ]; then
       OEROOT="`dirname $BASH_SOURCE`"
    else
-      OEROOT="`pwd`"
+      OEROOT="$(cd"$( dirname "${BASH_SOURCE[0]}")" && pwd )"
    fi
    OEROOT=`readlink -f "$OEROOT"`
    export OEROOT
