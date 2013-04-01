@@ -56,10 +56,10 @@ Toggling a particular FPGA LED ON/OFF:
 	./toggle <LED number> <0 or 1>	; 0:OFF, 1:ON)
 	./toggle			; help message
 Scrolling FPGA LEDs with specified delay:
-	./scroll <delay in ms> 	; if > 0 then scrolling LEDs light
-	./scroll 0		; if == 0 then read scrolling delay
-	./scroll -1		; if < 0 then stop scrolling
-	./scroll		; help message
+	./scroll_client <delay in ms> 	; if > 0 then scrolling LEDs light
+	./scroll_client 0		; if == 0 then read scrolling delay
+	./scroll_client -1		; if < 0 then stop scrolling
+	./scroll_client	      		; help message
 
 
 Application to register interrupt and write simple interrupt service routine
@@ -75,11 +75,14 @@ console.
 2. If the user connects to the console on board using ssh, the message can be
 viewed from kernel log via "dmesg" command.
 
+Note: User will need to do "rmmod gpio_interrupt" prior in order to change
+gpio_number by calling "modprobe gpio_interrupt gpio_number=<n>" again
+
 User will need to get the GPIO number from /sys/class/gpio/ by using
 command 'ls'. E.g.
 
 	root@socfpga-cyclone5~:# ls /sys/class/gpio/
-	export	gpio246	   gpio248  gpio252
+	gpiochip246	gpiochip248	gpiochip252
 
 From the listing, n can be obtained. The GPIO number may vary for different
 design with different device tree entries; this is due to the GPIO numbers are
