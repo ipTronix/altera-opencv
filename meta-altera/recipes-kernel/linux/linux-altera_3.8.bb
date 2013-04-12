@@ -12,3 +12,5 @@ S = "${WORKDIR}/${PN}-${PV}"
 
 SRCREV_pn-${PN} = "${AUTOREV}"
 
+DTB_SUBDIR="dts/"
+

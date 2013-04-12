@@ -71,7 +71,7 @@ do_deploy_dtb() {
     if test -n "${KERNEL_DEVICETREE}"; then
         for DTB_FILE in ${KERNEL_DEVICETREE}; do
 	    DTB_SYMLINK_NAME="${DTB_FILE}.dtb"
-	    DEVICE_TREE_OUTPUT="${S}/arch/${ARCH}/boot/${DTB_FILE}.dtb"
+	    DEVICE_TREE_OUTPUT="${S}/arch/${ARCH}/boot/${DTB_SUBDIR}${DTB_FILE}.dtb"
             DTB_NAME="${DTB_FILE}-${DATETIME}.dtb"
             if [ ! -f ${DEVICE_TREE_OUTPUT} ]; then
                 echo "Warning: ${DEVICE_TREE_OUTPUT} is not available!"
