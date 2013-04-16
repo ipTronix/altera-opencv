@@ -236,8 +236,8 @@ CONF_VERSION = "1"
 
 # Premirrors reduces download time and bandwidth usage by downloading files from 
 # alternate locations, especially from internal file/web servers.
-SOURCE_MIRROR_URL = "file://__INSTALL_DIR__/sources/"
-INHERIT += "own-mirrors"
+#SOURCE_MIRROR_URL ?= "http://rocketboard.org/sources"
+#INHERIT += " own-mirrors"
 
 # Disable the network connectivity check
 CONNECTIVITY_CHECK_URIS = ""
@@ -255,13 +255,4 @@ CONNECTIVITY_CHECK_URIS = ""
 #     first time sure to run bitbake -f -c configure virtual/kernel in order to set Linux
 #     to build with an initramfs. Same goes for clearing this.
 #INITRAMFS_IMAGE = "altera-image-minimal"
-
-#
-# Setting the following variables will enable the use of the Linaro toolchain. If not set
-#     you will build using gcc built by Yocto. EXTERNAL_TOOLCHAIN must be set to the path
-#     where the linaro toolchain exists and should have subdirectories named lib, bin, etc
-#
-TCLIBC = "external-linaro-toolchain"
-TCMODE = "external-linaro"
-EXTERNAL_TOOLCHAIN = "__INSTALL_DIR__/linaro/gcc-linaro-arm-linux-gnueabihf-4.7-2012.11-20121123_linux"
 

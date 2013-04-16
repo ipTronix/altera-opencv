@@ -1,11 +1,21 @@
+PR = "r1"
+SRC_URI = "git://git.rocketboards.org/linux-socfpga.git;protocol=http;branch=socfpga-${PV}"
+
+SRCREV_pn-${PN} = "${AUTOREV}"
+
 inherit kernel
 SECTION = "kernel"
 DESCRIPTION = "Altera Linux kernel"
 LICENSE = "GPLv2"
 
+PROVIDES+=" linux virtual/kernel"
 COMPATIBLE_MACHINE = "socfpga"
 
-KBRANCH = "${MACHINE}-${LINUX_VERSION}"
+LIC_FILES_CHKSUM = "file://${S}/COPYING;md5=d7810fab7487fb0aad327b76f1be7cd7"
+
+S = "${WORKDIR}/git"
+
+SRCREV_pn-${PN} = "${AUTOREV}"
 
 do_configure() {
 	export INITRAMFS_IMAGE_FILE="${INITRAMFS_IMAGE}-${MACHINE}.cpio"

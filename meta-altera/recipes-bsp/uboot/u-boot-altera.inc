@@ -8,6 +8,12 @@ inherit deploy
 PARALLEL_MAKE=""
 PACKAGES=""
 
+SRC_URI = "git://git.rocketboards.org/u-boot-socfpga.git;protocol=http;branch=socfpga_v${PV}"
+LIC_FILES_CHKSUM = "file://${S}/COPYING;startline=26;md5=1707d6db1d42237583f50183a5651ecb"
+SRCREV_pn-${PN} = "${AUTOREV}"
+
+S = "${WORKDIR}/git"
+
 # GCC 4.5.1 builds unusable binaries using -Os, remove it from OPTFLAGS
 EXTRA_OEMAKE = "CROSS_COMPILE=${TARGET_PREFIX}"
 

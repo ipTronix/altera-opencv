@@ -25,13 +25,13 @@
 # being sourced.   To workaround the shell limitation use "set arg1" prior 
 # to sourcing this script.
 #
-if [ -z "$ZSH_NAME" ] && [ "x$0" = "x./oe-init-build-env" ]; then
-   echo "Error: This script needs to be sourced. Please run as '. ./oe-init-build-env'"
+if [ -z "$ZSH_NAME" ] && [ "x$0" = "x./altera-init" ]; then
+   echo "Error: This script needs to be sourced. Please run as '. ./altera-init'"
 else
    if [ -n "$BASH_SOURCE" ]; then
       OEROOT="`dirname $BASH_SOURCE`"
    else
-      OEROOT="$(cd"$( dirname "${BASH_SOURCE[0]}")" && pwd )"
+      OEROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd )"
    fi
    OEROOT=`readlink -f "$OEROOT"`
    export OEROOT

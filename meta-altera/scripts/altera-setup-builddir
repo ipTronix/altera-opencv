@@ -24,6 +24,11 @@ if [ -z "$BUILDDIR" ]; then
 fi
 
 mkdir -p $BUILDDIR/conf
+cp $OEROOT/meta-altera/scripts/env.sh $BUILDDIR/env.sh
+echo "OEROOT=$OEROOT"
+sed -i "s^__OEROOT__^$OEROOT^" $BUILDDIR/env.sh
+
+chmod a+x $BUILDDIR/env.sh
 
 if ! (test -d "$BUILDDIR"); then
     echo >&2 "Error: The builddir ($BUILDDIR) does not exist!"
@@ -55,6 +60,7 @@ if [ "x" != "x$TEMPLATECONF" ]; then
     fi
     OECORELAYERCONF="$TEMPLATECONF/bblayers.conf.sample"
     OECORELOCALCONF="$TEMPLATECONF/local.conf.sample"
+    OECORESITECONF="$TEMPLATECONF/site.conf.sample"
 fi
 
 if [ "x" = "x$OECORELOCALCONF" ]; then
@@ -77,6 +83,9 @@ if ! (test -r "$BUILDDIR/conf/bblayers.conf"); then
     # Put the abosolute path to the layers in bblayers.conf so we can run
     # bitbake without the init script after the first run
     sed "s|##COREBASE##|$OEROOT|g" $OECORELAYERCONF > $BUILDDIR/conf/bblayers.conf
+fi
+if !(test -r "$BUILDDIR/conf/site.conf") && (test -r "$OECORESITECONF"); then
+   cp -f $OECORESITECONF $BUILDDIR/conf/site.conf
 fi
 
 # Prevent disturbing a new GIT clone in same console
