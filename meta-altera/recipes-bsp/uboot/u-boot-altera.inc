@@ -6,6 +6,7 @@ PROVIDES += " virtual/bootloader u-boot"
 inherit deploy
 
 PARALLEL_MAKE=""
+PACKAGES=""
 
 # GCC 4.5.1 builds unusable binaries using -Os, remove it from OPTFLAGS
 EXTRA_OEMAKE = "CROSS_COMPILE=${TARGET_PREFIX}"
@@ -46,8 +47,8 @@ do_compile () {
 do_install () {
     install -d ${D}/boot
     install ${S}/${UBOOT_BINARY} ${D}/boot/${UBOOT_IMAGE}
-    install ${S}/spl/u-boot-spl ${D}/${UBOOT_ELF_SPL}
-    install ${S}/u-boot ${D}/${UBOOT_ELF}
+    install ${S}/spl/u-boot-spl ${D}/boot/${UBOOT_ELF_SPL}
+    install ${S}/u-boot ${D}/boot/${UBOOT_ELF}
     ln -sf ${UBOOT_IMAGE} ${D}/boot/${UBOOT_BINARY}
 }
 
@@ -72,4 +73,4 @@ do_deploy () {
 	rm -f ${UBOOT_SYMLINK_ELF}
 	ln -sf ${UBOOT_ELF} ${UBOOT_SYMLINK_ELF}
 }
-addtask deploy before do_build after do_compile
+# addtask deploy before do_build after do_compile
