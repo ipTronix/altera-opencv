@@ -40,8 +40,6 @@ echo -e "<h4>Developer Resources</h4>"
 echo -e "<ul>"
 	echo -e "<li><a href=\"http://www.altera.com/soc-hw-resources.html\" target=\"_blank\">Hardware Developers</a></li> "
 	echo -e "<li><a href=\"http://www.altera.com/soc-sw-resources.html\" target=\"_blank\">Software Developers</a></li>"
-	echo -e "<li><a href=\"http://www.altera.com/products/devkits/altera/kit-cyclone-v-soc.html\" target=\"_blank\">Kit Specific Content</a></li>"
-	echo -e "<li><a href=\"http://www.altera.com/soc-tech-support.html\" target=\"_blank\">Technical Support</a></li>"
 echo -e "</ul>"
 echo -e "</div>"
 
