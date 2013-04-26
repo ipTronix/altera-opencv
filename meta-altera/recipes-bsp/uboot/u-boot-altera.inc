@@ -79,4 +79,4 @@ do_deploy () {
 	rm -f ${UBOOT_SYMLINK_ELF}
 	ln -sf ${UBOOT_ELF} ${UBOOT_SYMLINK_ELF}
 }
-# addtask deploy before do_build after do_compile
+addtask deploy before do_build after do_compile
