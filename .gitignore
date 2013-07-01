@@ -9,6 +9,8 @@ sources/
 meta-*/
 !meta-skeleton
 !meta-hob
+!meta-altera
+!meta-linaro
 hob-image-*.bb
 *.swp
 *.orig
