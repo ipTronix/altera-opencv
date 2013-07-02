@@ -1,7 +1,0 @@
-This layer adds support for building with GCC Linaro and Linaro external
-toolchain.
-
-toolchain-layer from meta-openembedded is required due to GCC 4.6 being moved
-out from OpenEmbedded Core.
-
-Also some extra recipes are present which are used by Linaro developers.
