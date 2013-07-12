@@ -10,7 +10,7 @@ meta-*/
 !meta-skeleton
 !meta-hob
 !meta-altera
-!meta-linaro
+!meta-linaro-toolchain
 hob-image-*.bb
 *.swp
 *.orig

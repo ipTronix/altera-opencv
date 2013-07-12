@@ -1,0 +1,78 @@
+backport
+
+http://www.mail-archive.com/gcc-patches@gcc.gnu.org/msg26013.html
+
+Upstream-Status: Pending
+
+Signed-off-by: Khem Raj <raj.khem@gmail.com>
+Refreshed for meta-linaro by Marcin Juszkiewicz <marcin.juszkiewicz@linaro.org>
+
+---
+ gcc/configure    |    8 +++++++-
+ gcc/configure.ac |    8 +++++++-
+ 2 files changed, 14 insertions(+), 2 deletions(-)
+
+--- gcc-linaro-4.7-2013.02.orig/gcc/configure
++++ gcc-linaro-4.7-2013.02/gcc/configure
+@@ -3322,11 +3322,13 @@ fi
+ 
+ gcc_gxx_include_dir_add_sysroot=0
+ if test "${with_sysroot+set}" = set; then
+   gcc_gxx_without_sysroot=`expr "${gcc_gxx_include_dir}" : "${with_sysroot}"'\(.*\)'`
+   if test "${gcc_gxx_without_sysroot}"; then
+-    gcc_gxx_include_dir="${gcc_gxx_without_sysroot}"
++    if test x${with_sysroot} != x/; then
++      gcc_gxx_include_dir="${gcc_gxx_without_sysroot}"
++    fi
+     gcc_gxx_include_dir_add_sysroot=1
+   fi
+ fi
+ 
+ 
+@@ -7284,10 +7286,14 @@ fi
+ 
+ # Check whether --with-sysroot was given.
+ if test "${with_sysroot+set}" = set; then :
+   withval=$with_sysroot;
+  case ${with_sysroot} in
++ /) ;;
++ */) with_sysroot=`echo $with_sysroot | sed 's,/$,,'` ;;
++ esac
++ case ${with_sysroot} in
+  yes) TARGET_SYSTEM_ROOT='${exec_prefix}/${target_noncanonical}/sys-root' ;;
+  *) TARGET_SYSTEM_ROOT=$with_sysroot ;;
+  esac
+ 
+  TARGET_SYSTEM_ROOT_DEFINE='-DTARGET_SYSTEM_ROOT=\"$(TARGET_SYSTEM_ROOT)\"'
+--- gcc-linaro-4.7-2013.02.orig/gcc/configure.ac
++++ gcc-linaro-4.7-2013.02/gcc/configure.ac
+@@ -147,11 +147,13 @@ fi
+ 
+ gcc_gxx_include_dir_add_sysroot=0
+ if test "${with_sysroot+set}" = set; then
+   gcc_gxx_without_sysroot=`expr "${gcc_gxx_include_dir}" : "${with_sysroot}"'\(.*\)'`
+   if test "${gcc_gxx_without_sysroot}"; then
+-    gcc_gxx_include_dir="${gcc_gxx_without_sysroot}"
++    if test x${with_sysroot} != x/; then
++      gcc_gxx_include_dir="${gcc_gxx_without_sysroot}"
++    fi
+     gcc_gxx_include_dir_add_sysroot=1
+   fi
+ fi
+ 
+ AC_ARG_WITH(cpp_install_dir,
+@@ -784,10 +786,14 @@ AC_SUBST(SYSROOT_CFLAGS_FOR_TARGET)
+ AC_ARG_WITH(sysroot,
+ [AS_HELP_STRING([[--with-sysroot[=DIR]]],
+ 		[search for usr/lib, usr/include, et al, within DIR])],
+ [
+  case ${with_sysroot} in
++ /) ;;
++ */) with_sysroot=`echo $with_sysroot | sed 's,/$,,'` ;;
++ esac
++ case ${with_sysroot} in
+  yes) TARGET_SYSTEM_ROOT='${exec_prefix}/${target_noncanonical}/sys-root' ;;
+  *) TARGET_SYSTEM_ROOT=$with_sysroot ;;
+  esac
+    
+  TARGET_SYSTEM_ROOT_DEFINE='-DTARGET_SYSTEM_ROOT=\"$(TARGET_SYSTEM_ROOT)\"'
