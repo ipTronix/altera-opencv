@@ -9,7 +9,7 @@ DEPENDS = "virtual/kernel"
 inherit module
 
 SRC_URI = "git://git.linaro.org/git-ro/arm/ds5/gator.git;protocol=http"
-SRCREV="06ebd1eab0a782377611efee820bb57f09692cbf"
+SRCREV="f15a1807ecf7af6dd0cac9e175ff00bf06d7c304"
 INHIBIT_PACKAGE_DEBUG_SPLIT = "1"
 INHIBIT_PACKAGE_DEBUG_SPLIT-dev = "1"
 
