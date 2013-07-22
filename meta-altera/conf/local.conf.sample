@@ -256,3 +256,16 @@ CONNECTIVITY_CHECK_URIS = ""
 #     to build with an initramfs. Same goes for clearing this.
 #INITRAMFS_IMAGE = "altera-image-minimal"
 
+PREFERRED_PROVIDER_virtual/bootloader ?= "u-boot-altera"
+PREFERRED_PROVIDER_u-boot ?= "u-boot-altera"
+PREFERRED_PROVIDER_virtual/kernel ?= "linux-altera"
+PREFERRED_PROVIDER_linux ?= "linux-altera"
+PREFERRED_PROVIDER_u-boot-mkimage ?= "u-boot-mkimage-altera"
+PREFERRED_PROVIDER_linux-libc-headers ?= "linux-libc-headers-altera"
+PREFERRED_PROVIDER_linux-libc-headers-dev ?= "linux-libc-headers-altera"
+
+PREFERRED_VERSION_linux-altera ?= "3.9"
+PREFERRED_VERSION_linux-libc-headers-altera ?= "3.9"
+PREFERRED_VERSION_u-boot-altera ?= "2013.01.01"
+PREFERRED_VERSION_u-boot-mkimage-altera ?= "2013.01.01"
+
