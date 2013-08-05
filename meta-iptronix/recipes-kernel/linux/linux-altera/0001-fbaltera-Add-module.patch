@@ -1,0 +1,602 @@
+Index: git/drivers/video/Kconfig
+===================================================================
+--- git.orig/drivers/video/Kconfig
++++ git/drivers/video/Kconfig
+@@ -2408,6 +2408,18 @@ config FB_MXS
+ 	help
+ 	  Framebuffer support for the MXS SoC.
+ 
++config FB_ALTERA
++	tristate "Altera framebuffer support"
++	depends on FB
++	select FB_CFB_FILLRECT
++	select FB_CFB_COPYAREA
++	select FB_CFB_IMAGEBLIT
++	help
++	  This driver supports Altera.
++	  Say Y if you Altera SoC.
++	  To compile this driver as a module, choose M here; the module
++	  will be called alterafb.
++
+ config FB_PUV3_UNIGFX
+ 	tristate "PKUnity v3 Unigfx framebuffer support"
+ 	depends on FB && UNICORE32 && ARCH_PUV3
+Index: git/drivers/video/Makefile
+===================================================================
+--- git.orig/drivers/video/Makefile
++++ git/drivers/video/Makefile
+@@ -163,6 +163,8 @@ obj-$(CONFIG_FB_DA8XX)		  += da8xx-fb.o
+ obj-$(CONFIG_FB_MXS)		  += mxsfb.o
+ obj-$(CONFIG_FB_SSD1307)	  += ssd1307fb.o
+ 
++obj-$(CONFIG_FB_ALTERA)		  += altera/
++
+ # the test framebuffer is last
+ obj-$(CONFIG_FB_VIRTUAL)          += vfb.o
+ 
+Index: git/drivers/video/altera/Makefile
+===================================================================
+--- /dev/null
++++ git/drivers/video/altera/Makefile
+@@ -0,0 +1,9 @@
++#
++# Makefile for the Altera framebuffer driver
++#
++
++obj-$(CONFIG_FB_ALTERA)			+= alterafb.o
++
++# alterafb-y				+= alterafb_driver.o
++# alterafb-$(CONFIG_FB_ALTERA_I2C)	+= alterafb-i2c.o
++# alterafb-$(CONFIG_FB_ALTERA_ACCEL)	+= alterafb_accel.o
+Index: git/drivers/video/altera/alterafb.c
+===================================================================
+--- /dev/null
++++ git/drivers/video/altera/alterafb.c
+@@ -0,0 +1,494 @@
++/**
++ * @file alterafb.c
++ * @brief Frame buffer driver for Altera
++ *
++ *
++ * scrmem=0x02000000 scrlen=0x00500000 xres=1280 yres=1024 depth=32
++ * Offset:
++ * DMA Read         0x400
++ *
++ * Video port out   0x000  Register: 0 1-to enable the video out port
++ *                         must be set after DMA is setted and enabled
++ *
++ * Video port out reference: http://www.altera.com/literature/ug/ug_vip.pdf
++ *
++ * Avalon FPGA bus register's base address  FF200000
++ * AVALON_REGISTERS_BASE 0xFF200000
++ * Video OutOffset registry DMA Write
++ * AVALON_CONTROL     =  0; Bit0 1=peripheral start
++ *                          Bit1 1=Enable video data reading from two buffer
++ * AVALON_STATUS      =  1; Bit0 = Update bit rimane a 1 fino a che non � avvenuto l'update dei nuovi dati
++ *                          Bit1 = FSM Busy module is working
++ *                          Bit2 = show which frame buffer is in use
++ * AVALON_WORD_LEN    =  3; Number of 128 bit word for one image row
++ * AVALON_HRES        =  4; horizontal resolution
++ * AVALON_VRES        =  5; vertical resolution
++ * AVALON_STRIDE      =  6; byte da saltare alla fine di ogni riga per arrivare al primo byte della riga successiva
++ * AVALON_PHASE       =  7; byte da saltare all'inizio di ogni riga (se necessario all'applicazione)
++ * AVALON_BURSTSZ     =  8; read burst size
++ * AVALON_FB0_BASE    =  9; main buffer base address
++ * AVALON_FB1_BASE    = 10; secondary buffer base address, if enabled
++ * AVALON_UPDATE      = 11; Bit0   1 enable data update of hres vres ecc at the end of frame
++ *
++ */
++
++#include <linux/device.h>
++#include <linux/module.h>
++#include <linux/kernel.h>
++#include <linux/errno.h>
++#include <linux/string.h>
++#include <linux/mm.h>
++#include <linux/fb.h>
++#include <linux/init.h>
++#include <linux/dma-mapping.h>
++#include <linux/of_device.h>
++#include <linux/of_platform.h>
++#include <linux/of_address.h>
++#include <linux/io.h>
++
++#include <linux/alterafb.h>
++
++#define DRIVER_NAME "alterafb"
++
++//DMA
++//#define AVALON_REGISTERS_BASE    0xFF200000
++#define AVALON_REGISTERS_BASE    0
++#define AVALON_REGISTERS_SIZE    0x00001000
++
++#define AVALON_CONTROL  (AVALON_REGISTERS_BASE + 0x00000400)
++#define AVALON_STATUS   (AVALON_REGISTERS_BASE + 0x00000404)
++#define AVALON_WORD_LEN (AVALON_REGISTERS_BASE + 0x0000040C)
++#define AVALON_HRES     (AVALON_REGISTERS_BASE + 0x00000410)
++#define AVALON_VRES     (AVALON_REGISTERS_BASE + 0x00000414)
++#define AVALON_STRIDE   (AVALON_REGISTERS_BASE + 0x00000418)
++#define AVALON_PHASE    (AVALON_REGISTERS_BASE + 0x0000041C)
++#define AVALON_BURSTSZ  (AVALON_REGISTERS_BASE + 0x00000420) 
++#define AVALON_FB0_BASE (AVALON_REGISTERS_BASE + 0x00000424)
++#define AVALON_FB1_BASE (AVALON_REGISTERS_BASE + 0x00000428)
++#define AVALON_UPDATE   (AVALON_REGISTERS_BASE + 0x0000042C)
++
++// Video port out
++//#define VIDEOPORT_REGISTERS_BASE 0xFF200400
++#define VIDEOPORT_REGISTERS_BASE 0x00000000
++
++#define VPO_CTRL          (VIDEOPORT_REGISTERS_BASE + 0x00000000)
++
++//#define AVM_BURST_BITS      6       //avalon burst size bit count
++#define AVM_BPW           128       //avalon master bits per word
++//#define VIP_DEPTH           8       //color depth
++//#define VIP_CHANNELS        4       //color channel number
++//#define VIP_BPP             (VIP_DEPTH * VIP_CHANNELS)  //bits per pixel
++#define WORD_SIZE           (AVM_BPW/8)
++#define BURST_SIZE          4
++//#define WORDS_PER_LINE(hres)   ((((hres)*VIP_BPP)+AVM_BPW-1 )/AVM_BPW) // how many 128bits words in a scanline
++#define PALETTE_ENTRIES_NO  16
++#define RED_SHIFT      16
++#define GREEN_SHIFT     8
++#define BLUE_SHIFT      0
++
++
++/**
++ * Altera framebuffer private data definition.
++ */
++struct alterafb_drvdata {
++	struct fb_info          info;          /* FB driver info record */
++	unsigned long           word_len;
++	unsigned long           hres    ;
++	unsigned long           vres    ;
++	unsigned long           stride  ;
++	unsigned long           phase   ;
++	unsigned long           burstsz ;
++//	unsigned long           fb0_base;
++//	unsigned long           fb1_base;
++	struct {
++		phys_addr_t     phys;          /* phys. address of the control registers */
++		unsigned long   size;          /* size of the control registers space    */
++		void __iomem   *virt;          /* virt. address of the control registers */
++	}                       regs[4];
++	void                   *fb_virt;       /* virt. address of the frame buffer */
++	dma_addr_t              fb_phys;       /* phys. address of the frame buffer */
++//	int                     fb_alloced;    /* Flag, was the fb memory alloced? */
++//	u8                      flags;         /* features of the driver */
++	u32                     pseudo_palette[PALETTE_ENTRIES_NO]; /* Fake palette of 16 colors */
++};
++
++typedef struct {
++	unsigned long  mode;
++	unsigned long  phase;
++	unsigned long  width;
++	unsigned long  height;
++	unsigned char  bpp;
++}sAlteraFb, *psAlteraFb;
++
++static struct fb_fix_screeninfo alterafb_fix __initdata = {
++	.id     = "Altera",
++	.type   = FB_TYPE_PACKED_PIXELS,
++	.visual = FB_VISUAL_TRUECOLOR,
++	.accel  = FB_ACCEL_NONE,
++};
++
++static struct fb_var_screeninfo alterafb_var __initdata = {
++	.bits_per_pixel = 32,
++	.blue   = {  0, 8, 0 },
++	.green  = {  8, 8, 0 },
++	.red    = { 16, 8, 0 },
++	.transp = { 24, 8, 0 },
++	.activate = FB_ACTIVATE_NOW
++};
++
++static sAlteraFb alteraFb[] = {
++  {0, 0, 1024, 768, 4},
++};
++
++static void alterafb_destroy(struct fb_info *info)
++{
++//TODO
++	/*fb_dealloc_cmap(&info->cmap);
++	if (info->screen_base)
++		iounmap(info->screen_base);
++	release_mem_region(info->apertures->ranges[0].base, info->apertures->ranges[0].size);
++	framebuffer_release(info);*/
++}
++
++static int alterafb_setcolreg(unsigned regno,
++			      unsigned red, unsigned green, unsigned blue,
++			      unsigned transp, struct fb_info *fbi)
++{
++	u32 *palette = fbi->pseudo_palette;
++
++	if (regno >= PALETTE_ENTRIES_NO) {
++		return -EINVAL;
++	}
++	if (fbi->var.grayscale) {
++		/* Convert color to grayscale.
++		 * grayscale = 0.30*R + 0.59*G + 0.11*B */
++		red = green = blue =
++			(red * 77 + green * 151 + blue * 28 + 127) >> 8;
++	}
++
++	/* fbi->fix.visual is always FB_VISUAL_TRUECOLOR */
++
++	/* We only handle 8 bits of each color. */
++	red   >>= 8;
++	green >>= 8;
++	blue  >>= 8;
++	palette[regno] = (red   << RED_SHIFT  ) |
++	                 (green << GREEN_SHIFT) |
++	                 (blue  << BLUE_SHIFT );
++	return 0;
++}
++
++static int alterafb_ioctl(struct fb_info *info, unsigned int cmd, unsigned long arg) /* TODO */
++{
++//	int ret = 0;
++//	struct alterafb_info *fbi = to_vt8500lcd_info(info);
++	switch (cmd) {
++	case FBIO_WAITFORVSYNC:
++//		return -ETIMEDOUT;
++		return 0;
++	}
++	return 0;//ret;
++}
++
++int alterafb_sync(struct fb_info *p) /* TODO */
++{
++	//int loops = 5000000;
++	//while ((readl(regbase + GE_STATUS_OFF) & 4) && --loops)
++	//	cpu_relax();
++	return 0;//loops > 0 ? 0 : -EBUSY;
++}
++
++static int alterafb_blank(int blank_mode, struct fb_info *fbi)
++{
++//	struct alterafb_drvdata *drvdata = container_of(fbi, struct alterafb_drvdata, info);
++	switch (blank_mode) {
++	case FB_BLANK_UNBLANK:
++		/* turn on panel */
++	case FB_BLANK_NORMAL:
++	case FB_BLANK_VSYNC_SUSPEND:
++	case FB_BLANK_HSYNC_SUSPEND:
++	case FB_BLANK_POWERDOWN:
++		/* turn off panel */
++	default:
++		break;
++	}
++	return 0; /* success */
++}
++
++static struct fb_ops alterafb_ops = {
++	.owner          = THIS_MODULE,
++	.fb_destroy     = alterafb_destroy,
++	.fb_setcolreg   = alterafb_setcolreg,
++	.fb_sync        = alterafb_sync,
++	.fb_ioctl       = alterafb_ioctl,
++	.fb_blank       = alterafb_blank,
++	.fb_fillrect    = cfb_fillrect,
++	.fb_copyarea    = cfb_copyarea,
++	.fb_imageblit   = cfb_imageblit,
++};
++
++static int afbRegsSet(struct alterafb_drvdata* drv)
++{
++	// unlock FPGA's registers
++	__raw_writel(0x00003FFF, drv->regs[0].virt);//0xFFC25080);
++	__raw_writel(0x00000005, drv->regs[1].virt);//0xFFD0501C);
++printk(
++	"VPO_CTRL        [%08X] = %08X\n"
++	"AVALON_CONTROL  [%08X] = %08X\n"
++	"AVALON_WORD_LEN [%08X] = %08X\n"
++	"AVALON_HRES     [%08X] = %08X\n"
++	"AVALON_VRES     [%08X] = %08X\n"
++	"AVALON_STRIDE   [%08X] = %08X\n"
++	"AVALON_PHASE    [%08X] = %08X\n"
++	"AVALON_BURSTSZ  [%08X] = %08X\n"
++	"AVALON_FB0_BASE [%08X] = %08X\n"
++	"AVALON_FB1_BASE [%08X] = %08X\n"
++	"AVALON_CONTROL  [%08X] = %08X\n"
++	"VPO_CTRL        [%08X] = %08X\n",
++	VPO_CTRL       , 0x00000000   ,
++	AVALON_CONTROL , 0x00000000   ,
++	AVALON_WORD_LEN, drv->word_len,
++	AVALON_HRES    , drv->hres    ,
++	AVALON_VRES    , drv->vres    ,
++	AVALON_STRIDE  , drv->stride  ,
++	AVALON_PHASE   , drv->phase   ,
++	AVALON_BURSTSZ , drv->burstsz ,
++	AVALON_FB0_BASE, drv->fb_phys ,
++	AVALON_FB1_BASE, drv->fb_phys ,
++	AVALON_CONTROL , 0x00000001   ,
++	VPO_CTRL       , 0x00000001   );
++	
++	__raw_writel(0x00000000   , drv->regs[2].virt + VPO_CTRL       );
++	__raw_writel(0x00000000   , drv->regs[2].virt + AVALON_CONTROL );
++	__raw_writel(drv->word_len, drv->regs[2].virt + AVALON_WORD_LEN);
++	__raw_writel(drv->hres    , drv->regs[2].virt + AVALON_HRES    );
++	__raw_writel(drv->vres    , drv->regs[2].virt + AVALON_VRES    );
++	__raw_writel(drv->stride  , drv->regs[2].virt + AVALON_STRIDE  );
++	__raw_writel(drv->phase   , drv->regs[2].virt + AVALON_PHASE   );
++	__raw_writel(drv->burstsz , drv->regs[2].virt + AVALON_BURSTSZ );
++	__raw_writel(drv->fb_phys , drv->regs[2].virt + AVALON_FB0_BASE);
++	__raw_writel(drv->fb_phys , drv->regs[2].virt + AVALON_FB1_BASE);
++//	__raw_writel(drv->fb0_phys, drv->regs[2].virt + AVALON_FB0_BASE);
++//	__raw_writel(drv->fb1_phys, drv->regs[2].virt + AVALON_FB1_BASE);
++	__raw_writel(0x00000001   , drv->regs[2].virt + AVALON_CONTROL );
++	__raw_writel(0x00000001   , drv->regs[2].virt + VPO_CTRL       );
++	return 0;
++}
++
++static int alterafb_release(struct device *dev)
++{
++	struct alterafb_drvdata *drvdata = dev_get_drvdata(dev);
++	// TODO dealloc memory
++	unregister_framebuffer(&drvdata->info);
++	return 0;
++}
++
++/**
++ * OF bus binding
++ */
++static int alterafb_of_probe(struct platform_device *op)
++{
++	struct alterafb_drvdata *drvdata;
++	u32                      fbSize;
++	u32                      htotal;
++	int                      ret;
++	int                      mode;
++
++	mode = 0;// TODO search mode posso prenderlo da dtb
++
++printk("alterafb_probe:ScreenInfo M:%d W:%d H:%d D:%d\n",
++       mode, alteraFb[mode].width, alteraFb[mode].height, alteraFb[mode].bpp);
++
++/* TODO example to read data from DTB */
++{
++	int size;
++	u32 *p;
++	p = (u32*)of_get_property(op->dev.of_node, "reg", &size);
++	if(p){
++		//int i;
++		printk("alterafb_probe: of_get_property size = %08X reg = %08X\n", size, p);
++		//printk("alterafb_probe:of_get_property size = %08X\n", size);
++		//for(i=0; i<size/4; i++){
++		//	printk("alterafb_probe:of_get_property %d reg = %08X\n", i, p);
++		//}
++	}else{
++		printk("alterafb_probe: of_get_property failed\n");
++	}
++}
++/**/
++	/* Allocate the driver data region */
++	drvdata = kmalloc(sizeof(*drvdata), GFP_KERNEL);
++	if (!drvdata) {
++		dev_err(&op->dev, "Couldn't allocate device private record\n");
++printk("alterafb_probe:Couldn't allocate device private record\n");
++		return -ENOMEM;
++	}
++	memset(drvdata, 0, sizeof(*drvdata));
++printk("alterafb_probe: device private record allocated\n");
++	// alloc memory for frame buffer
++	fbSize = alteraFb[mode].width * alteraFb[mode].height * alteraFb[mode].bpp;
++	drvdata->fb_virt = dma_alloc_coherent(&op->dev, PAGE_ALIGN(fbSize),
++	                                      &drvdata->fb_phys, GFP_KERNEL);
++	if (!drvdata->fb_virt) {
++		printk(KERN_ERR
++		       "alterafb: abort, cannot alloc frame buffer memory\n");
++		kfree(drvdata);
++		return -ENOMEM;
++	}
++
++
++printk("alterafb_probe: DMA frame buffer memory allocated\n");
++	// remap registers
++	drvdata->regs[0].phys = 0xFFC25080;
++	drvdata->regs[0].size = 4;
++	drvdata->regs[0].virt = ioremap(drvdata->regs[0].phys, drvdata->regs[0].size);
++	if (!drvdata->regs[0].virt) {
++printk(KERN_ERR "alterafb: Couldn't lock memory region at 0x%08lX\n", drvdata->regs[0].phys);
++		dma_free_coherent(&op->dev, PAGE_ALIGN(fbSize), drvdata->fb_virt, drvdata->fb_phys);
++		kfree(drvdata);
++		return -ENODEV;
++	}
++
++	drvdata->regs[1].phys = 0xFFD0501C;
++	drvdata->regs[1].size = 4;
++	drvdata->regs[1].virt = ioremap(drvdata->regs[1].phys, drvdata->regs[1].size);
++	if (!drvdata->regs[1].virt) {
++printk(KERN_ERR "alterafb: Couldn't lock memory region at 0x%08lX\n", drvdata->regs[1].phys);
++		iounmap(drvdata->regs[0].virt);
++		dma_free_coherent(&op->dev, PAGE_ALIGN(fbSize), drvdata->fb_virt, drvdata->fb_phys);
++		kfree(drvdata);
++		return -ENODEV;
++	}
++
++	drvdata->regs[2].phys = 0xFF200000;
++	drvdata->regs[2].size = 0x1000;
++	drvdata->regs[2].virt = ioremap(drvdata->regs[2].phys, drvdata->regs[2].size);
++	if (!drvdata->regs[2].virt) {
++printk(KERN_ERR "alterafb: Couldn't lock memory region at 0x%08lX\n", drvdata->regs[2].phys);
++		iounmap(drvdata->regs[0].virt);
++		iounmap(drvdata->regs[1].virt);
++		dma_free_coherent(&op->dev, PAGE_ALIGN(fbSize), drvdata->fb_virt, drvdata->fb_phys);
++		kfree(drvdata);
++		return -ENODEV;
++	}
++
++	//must be multiple of 4 (the length of line, in bit, must be a multiple of 128)
++	htotal = ((alteraFb[mode].phase + alteraFb[mode].width)+3)/4;
++	drvdata->hres     = alteraFb[mode].width;
++	drvdata->vres     = alteraFb[mode].height;
++	drvdata->phase    = alteraFb[mode].phase * alteraFb[mode].bpp;
++	drvdata->stride   = BURST_SIZE * WORD_SIZE;
++	drvdata->word_len = htotal*alteraFb[mode].bpp/4;
++	drvdata->burstsz  = BURST_SIZE;
++
++	ret = afbRegsSet(drvdata);
++	if(ret){
++		iounmap(drvdata->regs[0].virt);
++		iounmap(drvdata->regs[1].virt);
++		iounmap(drvdata->regs[2].virt);
++		dma_free_coherent(&op->dev, PAGE_ALIGN(fbSize), drvdata->fb_virt, drvdata->fb_phys);
++		kfree(drvdata);
++		return -EIO;
++	}
++
++	/* Fill struct fb_info */
++	drvdata->info.device          = (struct device *)&op->dev;
++	drvdata->info.screen_base     = (void __iomem *)drvdata->fb_virt;
++	drvdata->info.fbops           = &alterafb_ops;
++	drvdata->info.pseudo_palette  = drvdata->pseudo_palette;
++	drvdata->info.flags           = FBINFO_DEFAULT;
++
++	drvdata->info.fix             = alterafb_fix;
++	drvdata->info.fix.smem_start  = drvdata->fb_phys;
++	drvdata->info.fix.smem_len    = fbSize;
++	drvdata->info.fix.line_length = alteraFb[mode].width * alteraFb[mode].bpp;
++	
++	drvdata->info.var             = alterafb_var;
++/*TODO
++	drvdata->info.var.height       = pdata->screen_height_mm;
++	drvdata->info.var.width        = pdata->screen_width_mm;
++*/
++	drvdata->info.var.xres         = alteraFb[mode].width;
++	drvdata->info.var.yres         = alteraFb[mode].height;
++	drvdata->info.var.xres_virtual = alteraFb[mode].width;
++	drvdata->info.var.yres_virtual = alteraFb[mode].height;
++
++	/* Allocate a colour map */
++	ret = fb_alloc_cmap(&drvdata->info.cmap, PALETTE_ENTRIES_NO, 0);
++	if (ret) {
++printk(KERN_ERR "alterafb: Fail to allocate colormap (%d entries)\n", PALETTE_ENTRIES_NO);
++		iounmap(drvdata->regs[0].virt);
++		iounmap(drvdata->regs[1].virt);
++		iounmap(drvdata->regs[2].virt);
++		dma_free_coherent(&op->dev, PAGE_ALIGN(fbSize), drvdata->fb_virt, drvdata->fb_phys);
++		kfree(drvdata);
++		return ret;
++	}
++
++/*TODO irq
++	int irq;
++	irq = platform_get_irq(pdev, 0);
++	if (irq < 0) {
++		dev_err(&pdev->dev, "no IRQ defined\n");
++		//ret = -ENODEV;
++		//goto failed_free_palette;
++	}
++
++	ret = request_irq(irq, alterafb_handle_irq, 0, "LCD", fbi);
++	if (ret) {
++		dev_err(&pdev->dev, "request_irq failed: %d\n", ret);
++		//ret = -EBUSY;
++		//goto failed_free_palette;
++	}
++	free_irq(irq, fbi);
++
++*/
++
++	/* Register new frame buffer */
++	ret = register_framebuffer(&drvdata->info);
++	if (ret) {
++		printk(KERN_ERR "alterafb: Could not register frame buffer\n");
++		fb_dealloc_cmap(&drvdata->info.cmap);
++		iounmap(drvdata->regs[0].virt);
++		iounmap(drvdata->regs[1].virt);
++		iounmap(drvdata->regs[2].virt);
++		dma_free_coherent(&op->dev, PAGE_ALIGN(fbSize), drvdata->fb_virt, drvdata->fb_phys);
++		kfree(drvdata);
++		return -EINVAL;
++	}
++	printk(KERN_INFO "alterafb: phys=%llx, virt=%p, size=%x\n",
++		(unsigned long long)drvdata->fb_phys, drvdata->fb_virt, fbSize);
++	return 0;
++}
++
++static int alterafb_of_remove(struct platform_device *op)
++{
++printk(KERN_INFO "alterafb_remove\n");
++	return alterafb_release(&op->dev);
++}
++
++/* Match table for of_platform binding */
++static struct of_device_id alterafb_of_match[] = {
++	{ .compatible = "altr,socfpga-cyclone5", },
++	{ .compatible = "altr,socfpga", },
++	{ .compatible = "altr,alterafb", },
++	{},
++};
++MODULE_DEVICE_TABLE(of, alterafb_of_match);
++
++static struct platform_driver alterafb_of_driver = {
++	.probe  = alterafb_of_probe,
++	.remove = alterafb_of_remove,
++	.driver	= {
++		.name  = DRIVER_NAME,
++		.owner = THIS_MODULE,
++		.of_match_table = alterafb_of_match,
++	},
++};
++
++module_platform_driver(alterafb_of_driver);
++
++MODULE_AUTHOR("ipTronix, Inc. <source@iptronix.com>");
++MODULE_DESCRIPTION("Altera Cyclone 5 frame buffer driver");
++MODULE_LICENSE("GPL");
++
+Index: git/include/linux/alterafb.h
+===================================================================
+--- /dev/null
++++ git/include/linux/alterafb.h
+@@ -0,0 +1,31 @@
++/*
++ * Platform device data for Altera Cyclone 5 Framebuffer device
++ *
++ * Copyright 2013
++ *
++ * This file is licensed under the terms of the GNU General Public License
++ * version 2.  This program is licensed "as is" without any warranty of any
++ * kind, whether express or implied.
++ */
++
++#ifndef __ALTERAFB_H__
++#define __ALTERAFB_H__
++
++#include <linux/types.h>
++
++
++struct alterafb_platform_data {
++        u32 rotate_screen;      /* Flag to rotate display 180 degrees */
++        u32 screen_height_mm;   /* Physical dimensions of screen in mm */
++        u32 screen_width_mm;
++        u32 xres, yres;         /* resolution of screen in pixels */
++        u32 xvirt, yvirt;       /* resolution of memory buffer */
++
++        /* Physical address of framebuffer memory; If non-zero, driver
++         * will use provided memory address instead of allocating one from
++         * the consistent pool. */
++        u32 fb_phys;
++};
++
++#endif  /* __ALTERAFB_H__ */
++
+Index: git/arch/arm/boot/dts/socfpga_cyclone5.dts
+===================================================================
+--- git.orig/arch/arm/boot/dts/socfpga_cyclone5.dts
++++ git/arch/arm/boot/dts/socfpga_cyclone5.dts
+@@ -193,6 +193,12 @@ config FB_MXS
+ 				gpios = <&gpio1 12 1>;
+ 			};
+ 		};
++
++		alterafb@FF200000 {
++			compatible = "altr,alterafb";
++			label = "registers";
++			reg = <0xFF200000 0x800>;
++		};
+ 	};
+ };
+ 
