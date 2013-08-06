@@ -4,7 +4,7 @@ IMAGE_LINGUAS = " "
 IMAGE_ROOTFS_SIZE = "8192"
 
 # Do not pollute the initrd image with rootfs features
-IMAGE_FEATURES += "x11-sato"
+IMAGE_FEATURES += "x11-base apps-x11-core"
 
 IMAGE_DEVICE_TABLES += " files/socfpga_cyclone5_device_table.txt "
 
