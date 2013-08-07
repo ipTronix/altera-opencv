@@ -17,7 +17,7 @@ IPTRONIX_IMAGE_INSTALL ?= "util-linux initramfs-altera kernel-modules netbase \
                          xf86-input-mouse xf86-video-fbdev packagegroup-core-x11-base \
                          encodings font-alias font-util xorg-minimal-fonts \
                          xev xinit xinput xprop xrandr xvinfo xset x11perf xhost xeyes \
-                         opencv opencv-samples nfs-utils-client"
+                         opencv opencv-samples nfs-utils-client mplayer2"
 # net-tools
 IMAGE_INSTALL ?= "${IPTRONIX_IMAGE_INSTALL}"
 
