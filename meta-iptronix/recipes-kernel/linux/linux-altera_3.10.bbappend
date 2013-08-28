@@ -128,4 +128,6 @@ do_configure_append() {
 	grep CONFIG_VIDEO_V4L2_INT_DEVICE .config || echo "CONFIG_VIDEO_V4L2_INT_DEVICE=n" >> .config
         grep CONFIG_FB_GOLDFISH .config || echo "CONFIG_FB_GOLDFISH=n" >> .config
         grep CONFIG_FB_SIMPLE .config || echo "# CONFIG_FB_SIMPLE is not set" >> .config
+        grep CONFIG_CYPRESS_FIRMWARE .config || echo "# CONFIG_CYPRESS_FIRMWARE is not set" >> .config
+
 }

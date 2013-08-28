@@ -17,19 +17,19 @@ SRC_URI[sha256sum] = "f8fbe985978d4eae73e8c3b526ed40a37d4761d2029a5b035233f58146
 S = "${WORKDIR}/OpenCV-${PV}"
 
 do_install() {
-    cd samples/c
+    cd samples/cpp
     install -d ${D}/${bindir}
     install -d ${D}/${datadir}/opencv/samples
     install -d ${D}/${datadir}/opencv/data
 
     cp * ${D}/${datadir}/opencv/samples || true
 
-    for i in *.c; do
-        echo "compiling $i"
-        ${CXX} ${CFLAGS} ${LDFLAGS} -ggdb `pkg-config --cflags opencv` -o `basename $i .c` $i `pkg-config --libs opencv` || true
-        install -m 0755 `basename $i .c` ${D}/${bindir} || true
-        rm ${D}/${datadir}/opencv/samples/`basename $i .c` || true
-    done
+#    for i in *.c; do
+#        echo "compiling $i"
+#        ${CXX} ${CFLAGS} ${LDFLAGS} -ggdb `pkg-config --cflags opencv` -o `basename $i .c` $i `pkg-config --libs opencv` || true
+#        install -m 0755 `basename $i .c` ${D}/${bindir} || true
+#        rm ${D}/${datadir}/opencv/samples/`basename $i .c` || true
+#    done
     for i in *.cpp; do
         echo "compiling $i"
         ${CXX} ${CFLAGS} ${LDFLAGS} -ggdb `pkg-config --cflags opencv` -o `basename $i .cpp` $i `pkg-config --libs opencv` || true

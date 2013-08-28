@@ -1,1 +1,1 @@
-require linux-libc-headers-altera-master.inc
+require linux-libc-headers-altera.inc
