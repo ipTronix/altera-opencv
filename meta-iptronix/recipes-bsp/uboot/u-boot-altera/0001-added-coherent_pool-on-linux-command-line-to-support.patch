@@ -1,0 +1,25 @@
+From 92e67f21735622efe29bc23449733f25818f13a8 Mon Sep 17 00:00:00 2001
+From: pnndra <dario@iptronix.com>
+Date: Sat, 31 Aug 2013 17:01:35 +0200
+Subject: [PATCH 42/42] added coherent_pool on linux command line to support USB webcams
+
+---
+ include/configs/socfpga_common.h |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/include/configs/socfpga_common.h b/include/configs/socfpga_common.h
+index b8fe6ae..1d6f1a9 100644
+--- a/include/configs/socfpga_common.h
++++ b/include/configs/socfpga_common.h
+@@ -176,7 +176,7 @@
+  * CONFIG_BOOTARGS goes into the environment value "bootargs".
+  * Do note the value will overide also the chosen node in FDT blob.
+  */
+-#define CONFIG_BOOTARGS "console=ttyS0," __stringify(CONFIG_BAUDRATE)
++#define CONFIG_BOOTARGS "coherent_pool=2M console=ttyS0," __stringify(CONFIG_BAUDRATE)
+ 
+ #define CONFIG_EXTRA_ENV_SETTINGS \
+ 	"verify=n\0" \
+-- 
+1.7.1
+
