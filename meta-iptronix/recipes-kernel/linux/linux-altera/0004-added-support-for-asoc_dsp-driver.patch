@@ -1,0 +1,691 @@
+From 2f1fe58b5c043b522719c1f11e1dd259941a90d7 Mon Sep 17 00:00:00 2001
+From: pnndra <dario@iptronix.com>
+Date: Fri, 25 Oct 2013 14:51:17 +0200
+Subject: [PATCH] added support for asoc_dsp driver
+
+---
+ drivers/media/Kconfig             |    2 +
+ drivers/media/Makefile            |    1 +
+ drivers/media/asoc_dsp/Kconfig    |    5 +
+ drivers/media/asoc_dsp/Makefile   |    5 +
+ drivers/media/asoc_dsp/asoc_dsp.c |  532 +++++++++++++++++++++++++++++++++++++
+ drivers/media/asoc_dsp/asoc_dsp.h |   84 ++++++
+ 6 files changed, 629 insertions(+), 0 deletions(-)
+ create mode 100644 drivers/media/asoc_dsp/Kconfig
+ create mode 100644 drivers/media/asoc_dsp/Makefile
+ create mode 100644 drivers/media/asoc_dsp/asoc_dsp.c
+ create mode 100755 drivers/media/asoc_dsp/asoc_dsp.h
+
+diff --git a/drivers/media/Kconfig b/drivers/media/Kconfig
+index 8270388..0f7ea20 100644
+--- a/drivers/media/Kconfig
++++ b/drivers/media/Kconfig
+@@ -199,4 +199,6 @@ source "drivers/media/i2c/Kconfig"
+ source "drivers/media/tuners/Kconfig"
+ source "drivers/media/dvb-frontends/Kconfig"
+ 
++source "drivers/media/asoc_dsp/Kconfig"
++
+ endif # MEDIA_SUPPORT
+diff --git a/drivers/media/Makefile b/drivers/media/Makefile
+index 620f275..c354d8c 100644
+--- a/drivers/media/Makefile
++++ b/drivers/media/Makefile
+@@ -31,3 +31,4 @@ obj-y += rc/
+ obj-y += common/ platform/ pci/ usb/ mmc/ firewire/ parport/
+ obj-$(CONFIG_VIDEO_DEV) += radio/
+ 
++obj-y += asoc_dsp/
+diff --git a/drivers/media/asoc_dsp/Kconfig b/drivers/media/asoc_dsp/Kconfig
+new file mode 100644
+index 0000000..1fd91a9
+--- /dev/null
++++ b/drivers/media/asoc_dsp/Kconfig
+@@ -0,0 +1,5 @@
++config ASOC_DSP
++	tristate "Altera SoC DSP"
++	default m
++	help
++	  Say Y here to include support for Altera SoC DSP.
+diff --git a/drivers/media/asoc_dsp/Makefile b/drivers/media/asoc_dsp/Makefile
+new file mode 100644
+index 0000000..edfac86
+--- /dev/null
++++ b/drivers/media/asoc_dsp/Makefile
+@@ -0,0 +1,5 @@
++#
++# Makefile for Altera SoC DSP
++#
++
++obj-$(CONFIG_ASOC_DSP) += asoc_dsp.o
+diff --git a/drivers/media/asoc_dsp/asoc_dsp.c b/drivers/media/asoc_dsp/asoc_dsp.c
+new file mode 100644
+index 0000000..f773fe8
+--- /dev/null
++++ b/drivers/media/asoc_dsp/asoc_dsp.c
+@@ -0,0 +1,532 @@
++/**
++ * linux/drivers/video/asoc_dsp/asoc_dsp.c
++ *
++ * Altera SoC Cyclone V DSP peripheral dirver
++ *
++ */
++#include <linux/module.h>
++#include <linux/string.h>
++#include <linux/fs.h>
++#include <linux/cdev.h>
++#include <linux/device.h>
++#include <linux/vmalloc.h>
++#include <linux/io.h>
++#include <linux/dma-mapping.h>
++#include <linux/interrupt.h>
++#include <linux/slab.h>
++#include <asm/uaccess.h>
++#include <asm/cacheflush.h>
++#include <asm/tlbflush.h>
++
++#include <linux/delay.h>
++
++#include "asoc_dsp.h"
++
++#define DSP_DEV_NAME   "asoc_dsp"
++
++#define ASOC_DSP_IOCTL_MAGIC 'Ö'  
++#define ASOC_DSP_IOCTL_REQ_BUFFER         _IOW(ASOC_DSP_IOCTL_MAGIC, 0, asoc_dsp_buffer *)
++#define ASOC_DSP_IOCTL_FREE_BUFFER        _IOW(ASOC_DSP_IOCTL_MAGIC, 1, asoc_dsp_buffer *)
++#define ASOC_DSP_IOCTL_FLUSH_BUFFER       _IOW(ASOC_DSP_IOCTL_MAGIC, 2, asoc_dsp_buffer *)
++#define ASOC_DSP_IOCTL_INVALIDATE_BUFFER  _IOW(ASOC_DSP_IOCTL_MAGIC, 3, asoc_dsp_buffer *)
++#define ASOC_DSP_IOCTL_GET_DMAR_STAT      _IOW(ASOC_DSP_IOCTL_MAGIC, 4, int *)
++#define ASOC_DSP_IOCTL_START              _IOW(ASOC_DSP_IOCTL_MAGIC, 5, asoc_dsp_start *)
++#define ASOC_DSP_IOCTL_STOP               _IOW(ASOC_DSP_IOCTL_MAGIC, 6, int)
++
++static int dsp_mode = 0;
++module_param(dsp_mode, int, 0644);
++MODULE_PARM_DESC(dsp_mode, "ASoC DSP Driver mode");
++
++/* TODO
++#define DMAW_IRQ        1
++#define DMAW_IRQ_NAME   "ASOC_DMAW_IRQ"
++#define DMAR_IRQ        2
++#define DMAR_IRQ_NAME   "ASOC_DMAR_IRQ"
++*/
++
++//#define ASOC_DSP_DEBUG(X...) printk(X)
++#define ASOC_DSP_DEBUG(X...)
++
++struct dsp_drv_t
++{
++  struct cdev              *cdev;
++  uint8_t                   major;
++  uint8_t                   minor;
++  struct device            *dev;
++  // FPGA Slaves Lightweight HPS2FPGA AXI bridge
++  phys_addr_t               lwb_phys;       /* phys. address of the control registers */
++  unsigned long             lwb_size;       /* size of the control registers space    */
++  void __iomem             *lwb_virt;       /* virt. address of the control registers */
++
++  asoc_dsp_start           *dsp;
++  
++  struct backing_dev_info  *dev_info;
++};
++
++static struct dsp_drv_t dsp_drv = {
++  .cdev     = 0,
++  .major    = 0,
++  .minor    = 0,
++
++  .lwb_phys = ASOC_AXI_LW_BASE,
++  .lwb_size = ASOC_AXI_LW_SIZE,
++  .lwb_virt = NULL,
++
++  .dsp      = NULL,
++
++  .dev_info = &directly_mappable_cdev_bdi,
++};
++
++static int asoc_dsp_hw_init(struct dsp_drv_t *pDrv)
++{
++  pDrv->lwb_virt = ioremap(pDrv->lwb_phys, pDrv->lwb_size);
++  if (!pDrv->lwb_virt) {
++    ASOC_DSP_DEBUG( KERN_ERR "asoc_dsp:hw_init:Couldn't lock memory region at 0x%08lX\n",
++                    (long unsigned int)pDrv->lwb_phys);
++    return -ENODEV;
++  }
++  ASOC_DSP_DEBUG( KERN_ERR "asoc_dsp:hw_init:Lock memory region at 0x%08lX to 0x%08lX OK\n",
++                  (long unsigned int)pDrv->lwb_phys,
++                  (long unsigned int)pDrv->lwb_virt);
++  return 0;
++}
++
++static int dsp_open(struct inode *inode, struct file *file)
++{
++  ASOC_DSP_DEBUG("asoc_dsp:open\n");
++  file->private_data = &dsp_drv;
++  file->f_mapping->backing_dev_info = dsp_drv.dev_info;
++  if (dsp_drv.dev_info == &directly_mappable_cdev_bdi){
++    file->f_mode |= FMODE_UNSIGNED_OFFSET;
++  }
++  return capable(CAP_SYS_RAWIO) ? 0 : -EPERM;
++}
++
++static long dsp_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
++{
++  struct dsp_drv_t *pDrv = (struct dsp_drv_t *)file->private_data;
++//  int               err;
++
++//printk("asoc_dsp:ioctl:cmd %08X\n", cmd);
++  //ASOC_DSP_DEBUG("asoc_dsp:ioctl:cmd %08X\n", cmd);
++  /*
++  if (_IOC_TYPE(cmd) != ASOC_DSP_IOCTL_MAGIC) {
++    return -ENOTTY;
++  }
++  if (_IOC_DIR(cmd) & _IOC_READ) {
++    err = !access_ok(VERIFY_WRITE, (void _ _user *)arg, _IOC_SIZE(cmd));
++  } else if (_IOC_DIR(cmd) & _IOC_WRITE) {
++    err =  !access_ok(VERIFY_READ, (void _ _user *)arg, _IOC_SIZE(cmd));
++  }
++  if (err) {
++    return -EFAULT;
++  }
++  */
++  switch(cmd) {
++  case ASOC_DSP_IOCTL_REQ_BUFFER:
++    {
++      asoc_dsp_buffer buf;
++      int             r;
++      ASOC_DSP_DEBUG("asoc_dsp:ioctl:ASOC_DSP_IOCTL_REQ_BUFFER\n");
++      r = copy_from_user(&buf, (void*)arg, sizeof(asoc_dsp_buffer));
++      if(r){
++        return -EACCES;
++      }
++      if (dsp_mode==0 || dsp_mode==1) {
++        buf.phys = 0;
++        buf.virt = dma_alloc_coherent(pDrv->dev, PAGE_ALIGN(buf.size), (dma_addr_t*)&buf.phys, GFP_KERNEL);
++        if(!buf.virt){
++          ASOC_DSP_DEBUG( KERN_ERR
++                          "asoc_dsp:ioctl:ASOC_DSP_IOCTL_REQ_BUFFER: abort, cannot alloc requested buffer memory\n");
++          return -ENOMEM;
++        }
++      } else if (dsp_mode==2) {
++        buf.size = (buf.size + PAGE_SIZE - 1) & PAGE_MASK;
++        buf.virt = kmalloc(buf.size, GFP_DMA);//GFP_KERNEL);//
++        if(!buf.virt){
++          ASOC_DSP_DEBUG( KERN_ERR
++                          "asoc_dsp:ioctl:ASOC_DSP_IOCTL_REQ_BUFFER: abort, cannot alloc requested buffer memory\n");
++          return -ENOMEM;
++        }
++        buf.phys = (void*)virt_to_phys(buf.virt);
++//printk( "asoc_dsp:ioctl:ASOC_DSP_IOCTL_REQ_BUFFER: call dma_map_single\n");
++        //buf.dhnd = 
++        {
++          unsigned int t;
++        t = dma_map_single(pDrv->dev, buf.virt, buf.size, DMA_BIDIRECTIONAL);
++          if(t!=buf.phys){
++            printk("asoc_dsp:ioctl:ASOC_DSP_IOCTL_REQ_BUFFER: ERROR dma_map_single return no phys address\n");
++          }
++        }
++        //buf.dhnd = dma_map_single(pDrv->dev, buf.phys, buf.size, DMA_BIDIRECTIONAL);
++        //if(dma_mapping_error(pDrv->dev, buf.dhnd)){
++        //  //TODO
++        //  printk( "asoc_dsp:ioctl:ASOC_DSP_IOCTL_REQ_BUFFER: dma_map_single ERROR\n");
++          // reduce current DMA mapping usage, delay and try again later or reset driver.
++        //}
++      } else if (dsp_mode==3) {
++        buf.size = (buf.size + PAGE_SIZE - 1) & PAGE_MASK;
++        buf.virt = kmalloc(buf.size, GFP_DMA);//GFP_KERNEL);//
++        if(!buf.virt){
++          ASOC_DSP_DEBUG( KERN_ERR
++                          "asoc_dsp:ioctl:ASOC_DSP_IOCTL_REQ_BUFFER: abort, cannot alloc requested buffer memory\n");
++//printk("asoc_dsp:ioctl:ASOC_DSP_IOCTL_REQ_BUFFER: abort, cannot kmalloc requested buffer memory size %d\n", buf.size);
++          return -ENOMEM;
++        }
++        buf.phys = (void*)virt_to_phys(buf.virt);
++      }
++      ASOC_DSP_DEBUG( "asoc_dsp:ioctl:ASOC_DSP_IOCTL_REQ_BUFFER: size:%08X virt:%08X phys:%08X\n",
++                      buf.size, buf.virt, buf.phys);
++//printk( "asoc_dsp:ioctl:ASOC_DSP_IOCTL_REQ_BUFFER: size:%08X virt:%08X phys:%08X\n",
++//                      buf.size, buf.virt, buf.phys);
++      r = copy_to_user((void*)arg, &buf, sizeof(asoc_dsp_buffer));
++      if(r){
++//printk( "asoc_dsp:ioctl:ASOC_DSP_IOCTL_REQ_BUFFER:ERROR copy_to_user return %d\n", r);
++        kfree(buf.virt);
++        return -EACCES;
++      }
++    }
++    break;
++  case ASOC_DSP_IOCTL_FREE_BUFFER:
++    {
++      asoc_dsp_buffer   buf;
++      int               r;
++      r = copy_from_user(&buf, (void*)arg, sizeof(asoc_dsp_buffer));
++      if(r){
++        return -EACCES;
++      }
++      ASOC_DSP_DEBUG( "asoc_dsp:ioctl:ASOC_DSP_IOCTL_FREE_BUFFER: size:%08X virt:%08X phys:%08X\n",
++                      buf.size, buf.virt, buf.phys);
++      if (dsp_mode==0 || dsp_mode==1) {
++        dma_free_coherent(pDrv->dev, PAGE_ALIGN(buf.size), buf.virt, (dma_addr_t)buf.phys);
++      } else if (dsp_mode==2) {
++        //dma_unmap_page(pDrv->dev, buf.phys, buf.size, DMA_BIDIRECTIONAL);
++        dma_unmap_page(pDrv->dev, (dma_addr_t)buf.phys, buf.size, DMA_BIDIRECTIONAL);
++        kfree(buf.virt);
++      } else if (dsp_mode==3) {
++        if(pDrv->dsp){
++printk("asoc_dsp:ioctl:ASOC_DSP_IOCTL_FREE_BUFFER: vfree pDrv->dsp\n");
++          if( buf.virt == pDrv->dsp->src_virt ){
++            dma_unmap_single(pDrv->dev, (dma_addr_t)pDrv->dsp->src_phys, pDrv->dsp->src_size, DMA_TO_DEVICE);
++          }
++          if( buf.virt == pDrv->dsp->dst_virt ){
++            dma_unmap_single(pDrv->dev, (dma_addr_t)pDrv->dsp->dst_phys, pDrv->dsp->dst_size, DMA_FROM_DEVICE);
++          }
++          vfree(pDrv->dsp);
++          pDrv->dsp = NULL;
++        }
++        kfree(buf.virt);
++      }
++    }
++    break;
++  case ASOC_DSP_IOCTL_FLUSH_BUFFER:
++    ASOC_DSP_DEBUG("asoc_dsp:ioctl:ASOC_DSP_IOCTL_FLUSH_BUFFER\n");
++    if (dsp_mode==0 || dsp_mode==1) {
++      //__cpuc_flush_dcache_area(buf.phys, buf.size);
++      //__sync_cache_range_w((volatile void*)buf.virt, buf.size);
++    } else if (dsp_mode==2) {
++      asoc_dsp_buffer         buf;
++      int                     r;
++      r = copy_from_user(&buf, (void*)arg, sizeof(asoc_dsp_buffer));
++      if(r){
++        return -EACCES;
++      }
++      dma_sync_single_for_device(pDrv->dev, (dma_addr_t)buf.phys, buf.size, DMA_TO_DEVICE);
++//        dma_sync_single_for_cpu(pDrv->dev, buf.phys, buf.size, DMA_TO_DEVICE);
++    }
++    break;
++  case ASOC_DSP_IOCTL_INVALIDATE_BUFFER:
++    ASOC_DSP_DEBUG("asoc_dsp:ioctl:ASOC_DSP_IOCTL_INVALIDATE_BUFFER\n");
++    if (dsp_mode==0 || dsp_mode==1) {
++    }else if (dsp_mode==2) {
++      asoc_dsp_buffer   buf;
++      int               r;
++      r = copy_from_user(&buf, (void*)arg, sizeof(asoc_dsp_buffer));
++      if(r){
++        return -EACCES;
++      }
++//        dma_sync_single_for_device(pDrv->dev, buf.phys, buf.size, DMA_FROM_DEVICE);
++      dma_sync_single_for_cpu(pDrv->dev, (dma_addr_t)buf.phys, buf.size, DMA_FROM_DEVICE);
++    }
++    break;
++
++  case ASOC_DSP_IOCTL_START:
++    {
++      ASOC_DSP_DEBUG("asoc_dsp:ioctl:ASOC_DSP_IOCTL_START\n");
++      __raw_writel(0, (char*)pDrv->lwb_virt + ASOC_DSP_DMAW_PC);
++      __raw_writel(0, (char*)pDrv->lwb_virt + ASOC_DSP_DMAR_PC);
++      __raw_writel(0, (char*)pDrv->lwb_virt + ASOC_DSP_NIOS_CTRL);
++#ifdef DMAW_IRQ
++      __raw_writel( ASOC_DSP_DMA_CTRL_GO | ASOC_DSP_DMA_CTRL_INT_EN,
++                    (char*)pDrv->lwb_virt + ASOC_DSP_DMAW_CTRL);
++#else
++      __raw_writel( ASOC_DSP_DMA_CTRL_GO,
++                    (char*)pDrv->lwb_virt + ASOC_DSP_DMAW_CTRL);
++#endif
++#ifdef DMAR_IRQ
++      __raw_writel( ASOC_DSP_DMA_CTRL_GO | ASOC_DSP_DMA_CTRL_INT_EN,
++                    (char*)pDrv->lwb_virt + ASOC_DSP_DMAR_CTRL);
++#else
++      __raw_writel( ASOC_DSP_DMA_CTRL_GO,
++                    (char*)pDrv->lwb_virt + ASOC_DSP_DMAR_CTRL);
++#endif
++      if(dsp_mode==3){
++        int             r;
++        if(pDrv->dsp){
++          printk("asoc_dsp:ioctl:ASOC_DSP_IOCTL_START: ERROR dsp struct allocated\n");
++          vfree(pDrv->dsp);
++          pDrv->dsp = NULL;
++        }
++        pDrv->dsp = (asoc_dsp_start*)vmalloc(sizeof(asoc_dsp_start));
++        r = copy_from_user(pDrv->dsp, (void*)arg, sizeof(asoc_dsp_start));
++        if(r){
++          return -EACCES;
++        }
++//        printk( "asoc_dsp:ioctl:ASOC_DSP_IOCTL_START: call dma_map_single addr:%08X size:%08X\n", dsp.src_virt, dsp.src_size);
++        pDrv->dsp->src_phys = (void*)dma_map_single(pDrv->dev, pDrv->dsp->src_virt, pDrv->dsp->src_size, DMA_TO_DEVICE);
++//        printk( "asoc_dsp:ioctl:ASOC_DSP_IOCTL_START: call dma_map_single addr:%08X size:%08X\n", dsp.dst_virt, dsp.dst_size);
++        pDrv->dsp->dst_phys = (void*)dma_map_single(pDrv->dev, pDrv->dsp->dst_virt, pDrv->dsp->dst_size, DMA_FROM_DEVICE);
++      }
++    }
++    break;
++
++  case ASOC_DSP_IOCTL_STOP:
++    ASOC_DSP_DEBUG("asoc_dsp:ioctl:ASOC_DSP_IOCTL_STOP\n");
++    __raw_writel(ASOC_DSP_NIOS_CTRL_RST, (char*)pDrv->lwb_virt + ASOC_DSP_NIOS_CTRL);
++    __raw_writel(ASOC_DSP_DMA_CTRL_RST , (char*)pDrv->lwb_virt + ASOC_DSP_DMAW_CTRL);
++    __raw_writel(ASOC_DSP_DMA_CTRL_RST , (char*)pDrv->lwb_virt + ASOC_DSP_DMAR_CTRL);
++    break;
++
++  case ASOC_DSP_IOCTL_GET_DMAR_STAT:
++    ASOC_DSP_DEBUG("asoc_dsp:ioctl:ASOC_DSP_IOCTL_GET_DMAR_STAT\n");
++    *(int*)arg = __raw_readl((char*)pDrv->lwb_virt + ASOC_DSP_DMAR_STAT);
++    if(dsp_mode==3){
++      if(*(int*)arg==0 && pDrv->dsp){//  dsp_dmamap==1 && dsp.src_phys && dsp.dst_phys){
++//printk( "asoc_dsp:ioctl:ASOC_DSP_IOCTL_GET_DMAR_STAT: call dma_unmap_page addr:%08X size:%08X\n", dsp.src_phys, dsp.src_size);
++        dma_unmap_single(pDrv->dev, (dma_addr_t)pDrv->dsp->src_phys, pDrv->dsp->src_size, DMA_TO_DEVICE);
++//printk( "asoc_dsp:ioctl:ASOC_DSP_IOCTL_GET_DMAR_STAT: call dma_unmap_page addr:%08X size:%08X\n", dsp.dst_phys, dsp.dst_size);
++        dma_unmap_single(pDrv->dev, (dma_addr_t)pDrv->dsp->dst_phys, pDrv->dsp->dst_size, DMA_FROM_DEVICE);
++        vfree(pDrv->dsp);
++        pDrv->dsp = NULL;
++      }
++    }
++    break;
++  }
++  return 0;
++}
++
++static const struct vm_operations_struct dsp_mmap_mem_ops = {
++#ifdef CONFIG_HAVE_IOREMAP_PROT
++  .access = generic_access_phys
++#endif
++};
++
++static int dsp_mmap(struct file *file, struct vm_area_struct *vma)
++{
++  size_t size;
++  ASOC_DSP_DEBUG( "asoc_dsp:mmap: start %08X, end %08X, pgoff %08X, page_prot %08X\n",
++                  vma->vm_start,
++                  vma->vm_end,
++                  vma->vm_pgoff,
++                  vma->vm_page_prot);
++
++#define ASOC_AXI_LW_BASE        0xFF200000
++#define ASOC_AXI_LW_SIZE        0x00100000
++
++  size = vma->vm_end - vma->vm_start;
++  //if ( (vma->vm_pgoff != 0) || (size > ASOC_AXI_LW_SIZE) ) {
++  //  return -EINVAL;
++  //}
++  if ( (vma->vm_flags & VM_MAYSHARE) == 0 ){
++//printk( "asoc_dsp:mmap: ERROR vma->vm_flags & VM_MAYSHARE\n");
++    return -ENOSYS;
++  }
++  if ( vma->vm_pgoff == 0 ) {
++    vma->vm_pgoff     = ASOC_AXI_LW_BASE >> PAGE_SHIFT;
++    if (dsp_mode!=0) {
++      vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
++    }
++  }
++  if (dsp_mode==0) {
++    vma->vm_page_prot = pgprot_noncached(vma->vm_page_prot);
++  }
++  vma->vm_ops       = &dsp_mmap_mem_ops;
++  // Remap-pfn-range will mark the range VM_IO
++  if (remap_pfn_range(vma,
++                      vma->vm_start,
++                      vma->vm_pgoff,
++                      size,
++                      vma->vm_page_prot)) {
++printk( "asoc_dsp:mmap: ERROR remap_pfn_range start %08X, pgoff %08X, size %08X, page_prot %08X\n",
++                  vma->vm_start,
++                  vma->vm_pgoff,
++                  size,
++                  vma->vm_page_prot);
++    return -EAGAIN;
++  }
++  ASOC_DSP_DEBUG( "asoc_dsp:mmap: start %08X, end %08X, pgoff %08X, page_prot %08X\n",
++                  vma->vm_start,
++                  vma->vm_end,
++                  vma->vm_pgoff,
++                  vma->vm_page_prot);
++  return 0;
++}
++
++static int dsp_release(struct inode *inod, struct file *file)
++{
++//  struct dsp_drv_t *pDrv = (struct dsp_drv_t *)file->private_data;
++  ASOC_DSP_DEBUG("asoc_dsp:close\n");
++/*  if(pDrv->dsp){
++    dma_unmap_single(pDrv->dev, (dma_addr_t)pDrv->dsp->src_phys, pDrv->dsp->src_size, DMA_TO_DEVICE);
++    dma_unmap_single(pDrv->dev, (dma_addr_t)pDrv->dsp->dst_phys, pDrv->dsp->dst_size, DMA_FROM_DEVICE);
++    vfree(pDrv->dsp);
++    pDrv->dsp = NULL;
++  }*/
++  return 0;
++}
++
++static struct file_operations dsp_fops = {
++ .open           = dsp_open,
++ .unlocked_ioctl = dsp_ioctl,
++ .mmap           = dsp_mmap,
++ .release        = dsp_release,
++};
++
++#ifdef DMAW_IRQ
++static irqreturn_t irq_dmaw_isr(int irq, void *dev_id, struct pt_regs * regs)
++{
++  struct dsp_drv_t *pDrv = (struct dsp_drv_t *)dev_id;
++  uint32_t          reg;
++  printk(KERN_ALERT "asoc_dsp: DMAW Interrupt handler executed!\n");
++  reg = __raw_readl((char*)pDrv->lwb_virt + ASOC_DSP_DMAW_CTRL);
++  reg |= ASOC_DSP_DMA_CTRL_RST_INT;//TODO
++  __raw_writel(reg, (char*)pDrv->lwb_virt + ASOC_DSP_DMAW_CTRL);
++  return IRQ_HANDLED;
++}
++#endif
++#ifdef DMAR_IRQ
++static irqreturn_t irq_dmar_isr(int irq, void *dev_id, struct pt_regs * regs)
++{
++  struct dsp_drv_t *pDrv = (struct dsp_drv_t *)dev_id;
++  uint32_t          reg;
++  printk(KERN_ALERT "asoc_dsp: DMAR Interrupt handler executed!\n");
++  reg = __raw_readl((char*)pDrv->lwb_virt + ASOC_DSP_DMAR_CTRL);
++  reg |= ASOC_DSP_DMA_CTRL_RST_INT;//TODO
++  __raw_writel(reg, (char*)pDrv->lwb_virt + ASOC_DSP_DMAR_CTRL);
++  //TODO deve fare dma_unmap_single e poi di nuovo dma_map_single, come recupero il buffer attuale????
++  // credo questa sia più adatta void dma_sync_single (struct device * dev, dma_addr_t handle, size_t size, enum dma_data_direction dir);
++  return IRQ_HANDLED;
++}
++#endif
++
++static struct class *mem_class;
++
++static char *mem_devnode(struct device *dev, umode_t *mode)
++{
++  if (mode) {
++    *mode = 0666;
++  }
++  return NULL;
++}
++
++static inline int dsp_drv_create_dev(void)
++{
++  struct dsp_drv_t *driver = &dsp_drv;
++  struct cdev      *cdev;
++  dev_t             devt;
++  int               rc;
++
++  rc = asoc_dsp_hw_init(driver);
++  if (rc) {
++    return -EFAULT;
++  }
++
++  rc = alloc_chrdev_region(&devt, driver->minor, 1, DSP_DEV_NAME);
++  driver->major = MAJOR(devt);
++  if (rc) {
++    ASOC_DSP_DEBUG(KERN_ERR "asoc_dsp:Failed to register chrdev region with major %d.\n", driver->major);
++    goto err_region;
++  }
++
++  // register cdev
++  rc = -ENOMEM;
++  cdev = cdev_alloc();
++  if (!cdev) {
++    goto err_cdev;
++  }
++  cdev->owner = THIS_MODULE;
++  cdev->ops   = &dsp_fops;
++
++  rc = cdev_add(cdev, devt, 1);
++  if (rc) {
++    goto err_cdev;
++  }
++  driver->cdev = cdev;
++  
++  mem_class = class_create(THIS_MODULE, DSP_DEV_NAME);
++  if (IS_ERR(mem_class)) {
++    goto err_cdev;
++    //return PTR_ERR(mem_class);
++  }
++  mem_class->devnode = mem_devnode;
++  driver->dev = device_create(mem_class, NULL,
++                              MKDEV(driver->major, driver->minor),
++                              NULL, DSP_DEV_NAME);
++  driver->dev->dma_mask = &driver->dev->coherent_dma_mask;
++  driver->dev->coherent_dma_mask = DMA_BIT_MASK(32);
++
++#ifdef DMAW_IRQ
++  rc = request_irq(DMAW_IRQ, irq_dmaw_isr, 0, DMAW_IRQ_NAME, driver);
++  if(rc){
++    printk("asoc_dsp: DMAW_IRQ request failed!\n");
++    //return status; TODO
++  }
++//  enable_irq(DMAW_IRQ); // required with nios?
++#endif
++#ifdef DMAR_IRQ
++  rc = request_irq(DMAR_IRQ, irq_dmar_isr, 0, DMAR_IRQ_NAME, driver);
++  if(rc){
++    printk("asoc_dsp: DMAR_IRQ request failed!\n");
++    //return status; TODO
++  }
++//  enable_irq(DMAR_IRQ); // required with nios?
++#endif
++  ASOC_DSP_DEBUG( "asoc_dsp: Driver allocated major:%d minor:%d\n", MAJOR(devt), MINOR(devt));  
++  return 0;
++
++err_cdev:
++  cdev_del(cdev);
++err_region:
++  unregister_chrdev_region(devt, 1);
++  return -EFAULT;
++}
++
++static int __init dsp_drv_init(void)  
++{
++  printk(KERN_ALERT "ASoC DSP Driver mode is %d\n", dsp_mode);
++  return dsp_drv_create_dev();  
++}  
++  
++static void __exit dsp_drv_exit(void)  
++{  
++  struct dsp_drv_t *driver = &dsp_drv;
++
++  if(driver->cdev){
++#ifdef DMAW_IRQ
++    free_irq(DMAW_IRQ, NULL);
++#endif
++#ifdef DMAR_IRQ
++    free_irq(DMAR_IRQ, NULL);
++#endif
++    //cdev_del(&c_dev);
++    device_destroy (mem_class, driver->cdev->dev);
++    class_destroy(mem_class);
++    unregister_chrdev_region(driver->cdev->dev, 1);
++    cdev_del(driver->cdev);
++  }
++}  
++  
++module_init(dsp_drv_init);
++module_exit(dsp_drv_exit);
++
++MODULE_LICENSE("GPL");
+diff --git a/drivers/media/asoc_dsp/asoc_dsp.h b/drivers/media/asoc_dsp/asoc_dsp.h
+new file mode 100755
+index 0000000..646bf28
+--- /dev/null
++++ b/drivers/media/asoc_dsp/asoc_dsp.h
+@@ -0,0 +1,84 @@
++/**
++ * @file asoc_dsp.h
++ */
++#ifndef __ASOC_DSP_H
++#define __ASOC_DSP_H
++
++/**
++ * FPGA Slaves accessed via Lightweight HPS2FPGA AXI bridge
++ */
++#define ASOC_AXI_LW_BASE          0xFF200000
++#define ASOC_AXI_LW_SIZE          0x00100000
++
++/**
++ * FPGA NIOS controller register
++ */
++#define ASOC_DSP_NIOS_CTRL        0x0500
++
++#define ASOC_DSP_NIOS_CTRL_RST    0x00000001  // NIOS controller register - bit 0 RESET
++
++/**
++ * FPGA DMA and NIOS base addresses
++ */
++#define ASOC_DSP_NIOS_PROG        0x1000  // Area di memoria programma e dati del Nios          
++
++/**
++ * FPGA read and write DMA addresses
++ * Valori da sommare al Base Address della periferica per raggiungere le aree di memoria seguenti
++ */
++#define ASOC_DSP_DMA_BASE         0x2000
++#define ASOC_DSP_DMAW_BASE        (ASOC_DSP_DMA_BASE + 0x0000)  // DMA WR base address
++#define ASOC_DSP_DMAR_BASE        (ASOC_DSP_DMA_BASE + 0x1000)  // DMA RD base address
++
++/**
++ * FPGA DMA control register
++ */
++#define ASOC_DSP_DMAW_CTRL        (ASOC_DSP_DMAW_BASE + 0x0800)
++#define ASOC_DSP_DMAR_CTRL        (ASOC_DSP_DMAR_BASE + 0x0800)
++
++#define ASOC_DSP_DMA_CTRL_GO      0x00000001 //avvia il rispettivo DMA
++#define ASOC_DSP_DMA_CTRL_INT_EN  0x00000002 //abilita interrrupt del termine programma
++#define ASOC_DSP_DMA_CTRL_RST_INT 0x00000004 //reset dell'interrupt, Il bit è resettato anche da un go
++#define ASOC_DSP_DMA_CTRL_RST     0x00000008 //ferma il DMA e mette tutto in IDLE 
++
++/**
++ * FPGA DMA status register
++ */
++#define ASOC_DSP_DMAR_STAT        (ASOC_DSP_DMAR_BASE + 0x0804)
++
++#define ASOC_DSP_INT_EN_RD      0x00000001 // Stato del Bit di Enable interrupt DMA RD
++#define ASOC_DSP_RUNNING_RD     0x00000002 // Lettura dati dal DSP in corso
++#define ASOC_DSP_EXE_BURST_RD   0x00000004 // Scrittura in DDR in corso
++#define ASOC_DSP_SP_WRITE_WR    0x00000008 // Scrittura dati sui DSP
++#define ASOC_DSP_INT_EN_WR      0x00000010 // Stato del Bit di Enable Interrupt
++#define ASOC_DSP_RUNNING_WR     0x00000020 // Scrittura dati dal DSP in corso
++#define ASOC_DSP_EXE_BURST_WR   0x00000040 // Scrittura in DDR in corso
++#define ASOC_DSP_SC_INT_WR      0x00000080 // Stato Del Pin di interrupt wr
++#define ASOC_DSP_SC_INT_RD      0x00000100 // Stato Del Pin di interrupt rd
++
++/**
++ * FPGA DMA pc init register
++ */
++#define ASOC_DSP_DMAW_PC    (ASOC_DSP_DMAW_BASE + 0x0808)
++#define ASOC_DSP_DMAR_PC    (ASOC_DSP_DMAR_BASE + 0x0808)
++
++/**
++ */
++typedef struct {
++  size_t      size; // size of buffer
++  void       *virt; // kernel virtual address
++  void       *phys; // physical address
++}asoc_dsp_buffer;
++
++/**
++ */
++typedef struct {
++  size_t      src_size; // source buffer size
++  void       *src_virt; // source buffer virtual address
++  void       *src_phys; // source buffer physical address
++  size_t      dst_size; // destination buffer size
++  void       *dst_virt; // destination buffer virtual address
++  void       *dst_phys; // destination buffer physical address
++}asoc_dsp_start;
++
++#endif  /* __ASOC_DSP_H */
+-- 
+1.7.1
+
