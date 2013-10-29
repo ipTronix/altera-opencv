@@ -1,17 +1,17 @@
-Index: 2.4.3-r0/OpenCV-2.4.3/modules/core/CMakeLists.txt
+Index: OpenCV-2.4.3/modules/core/CMakeLists.txt
 ===================================================================
---- 2.4.3-r0.orig/OpenCV-2.4.3/modules/core/CMakeLists.txt
-+++ 2.4.3-r0/OpenCV-2.4.3/modules/core/CMakeLists.txt
+--- OpenCV-2.4.3.orig/modules/core/CMakeLists.txt
++++ OpenCV-2.4.3/modules/core/CMakeLists.txt
 @@ -26,3 +26,4 @@ ocv_add_precompiled_headers(${the_module
  ocv_add_accuracy_tests()
  ocv_add_perf_tests()
  
 +add_definitions(-DHAVE_ALTERA_SOC_OPTIMIZATION)
 \ No newline at end of file
-Index: 2.4.3-r0/OpenCV-2.4.3/modules/core/src/alloc.cpp
+Index: OpenCV-2.4.3/modules/core/src/alloc.cpp
 ===================================================================
---- 2.4.3-r0.orig/OpenCV-2.4.3/modules/core/src/alloc.cpp
-+++ 2.4.3-r0/OpenCV-2.4.3/modules/core/src/alloc.cpp
+--- OpenCV-2.4.3.orig/modules/core/src/alloc.cpp
++++ OpenCV-2.4.3/modules/core/src/alloc.cpp
 @@ -59,18 +59,104 @@ static void* OutOfMemoryError(size_t siz
  void deleteThreadAllocData() {}
  #endif
@@ -127,20 +127,20 @@ Index: 2.4.3-r0/OpenCV-2.4.3/modules/core/src/alloc.cpp
  }
  
  #else //CV_USE_SYSTEM_MALLOC
-Index: 2.4.3-r0/OpenCV-2.4.3/modules/imgproc/CMakeLists.txt
+Index: OpenCV-2.4.3/modules/imgproc/CMakeLists.txt
 ===================================================================
---- 2.4.3-r0.orig/OpenCV-2.4.3/modules/imgproc/CMakeLists.txt
-+++ 2.4.3-r0/OpenCV-2.4.3/modules/imgproc/CMakeLists.txt
+--- OpenCV-2.4.3.orig/modules/imgproc/CMakeLists.txt
++++ OpenCV-2.4.3/modules/imgproc/CMakeLists.txt
 @@ -1,2 +1,4 @@
  set(the_description "Image Processing")
  ocv_define_module(imgproc opencv_core)
 +
 +add_definitions(-DHAVE_ALTERA_SOC_OPTIMIZATION)
 \ No newline at end of file
-Index: 2.4.3-r0/OpenCV-2.4.3/modules/imgproc/src/asoc.cpp
+Index: OpenCV-2.4.3/modules/imgproc/src/asoc.cpp
 ===================================================================
 --- /dev/null
-+++ 2.4.3-r0/OpenCV-2.4.3/modules/imgproc/src/asoc.cpp
++++ OpenCV-2.4.3/modules/imgproc/src/asoc.cpp
 @@ -0,0 +1,287 @@
 +/**
 + * Altera SoC
@@ -429,10 +429,10 @@ Index: 2.4.3-r0/OpenCV-2.4.3/modules/imgproc/src/asoc.cpp
 +  }
 +
 +}}
-Index: 2.4.3-r0/OpenCV-2.4.3/modules/imgproc/src/asoc.hpp
+Index: OpenCV-2.4.3/modules/imgproc/src/asoc.hpp
 ===================================================================
 --- /dev/null
-+++ 2.4.3-r0/OpenCV-2.4.3/modules/imgproc/src/asoc.hpp
++++ OpenCV-2.4.3/modules/imgproc/src/asoc.hpp
 @@ -0,0 +1,65 @@
 +/*! \file asoc.hpp
 + \brief Altera SoC
@@ -499,10 +499,10 @@ Index: 2.4.3-r0/OpenCV-2.4.3/modules/imgproc/src/asoc.hpp
 +  int dspFilter(sAsocDspBuffer* srcBuf, uint32_t srcAdr, sAsocDspBuffer* dstBuf, uint32_t dstAdr);
 +}}
 +
-Index: 2.4.3-r0/OpenCV-2.4.3/modules/imgproc/src/asoc_dsp_f1.cpp
+Index: OpenCV-2.4.3/modules/imgproc/src/asoc_dsp_f1.cpp
 ===================================================================
 --- /dev/null
-+++ 2.4.3-r0/OpenCV-2.4.3/modules/imgproc/src/asoc_dsp_f1.cpp
++++ OpenCV-2.4.3/modules/imgproc/src/asoc_dsp_f1.cpp
 @@ -0,0 +1,334 @@
 +/**
 + * @file asoc_dsp_f1.c
@@ -839,10 +839,10 @@ Index: 2.4.3-r0/OpenCV-2.4.3/modules/imgproc/src/asoc_dsp_f1.cpp
 +};
 +}}
 \ No newline at end of file
-Index: 2.4.3-r0/OpenCV-2.4.3/modules/imgproc/src/deriv.cpp
+Index: OpenCV-2.4.3/modules/imgproc/src/deriv.cpp
 ===================================================================
---- 2.4.3-r0.orig/OpenCV-2.4.3/modules/imgproc/src/deriv.cpp
-+++ 2.4.3-r0/OpenCV-2.4.3/modules/imgproc/src/deriv.cpp
+--- OpenCV-2.4.3.orig/modules/imgproc/src/deriv.cpp
++++ OpenCV-2.4.3/modules/imgproc/src/deriv.cpp
 @@ -43,6 +43,11 @@
  #if defined (HAVE_IPP) && (IPP_VERSION_MAJOR >= 7)
  static IppStatus sts = ippInit();
@@ -929,3 +929,215 @@ Index: 2.4.3-r0/OpenCV-2.4.3/modules/imgproc/src/deriv.cpp
          if( ddepth < 0 )
              ddepth = src.depth();
          int dtype = CV_MAKETYPE(ddepth, src.channels());
+Index: OpenCV-2.4.3/modules/imgproc/src/asoc_dsp.h
+===================================================================
+--- /dev/null
++++ OpenCV-2.4.3/modules/imgproc/src/asoc_dsp.h
+@@ -0,0 +1,207 @@
++/**
++ * @file asoc_dsp.h
++ */
++#ifndef __ASOC_DSP_H
++#define __ASOC_DSP_H
++
++#include <stdint.h>
++
++/**
++ * FPGA DDR3 memory accessed via HPS2FPGA AXI bridge
++ */
++#define ASOC_AXI_MEM_BASE       0xC0000000
++#define ASOC_AXI_MEM_SIZE       0x10000000
++
++/**
++ * FPGA Slaves accessed via Lightweight HPS2FPGA AXI bridge
++ */
++#define ASOC_AXI_LW_BASE        0xFF200000
++#define ASOC_AXI_LW_SIZE        0x00100000
++
++/**
++ * FPGA NIOS controller register
++ */
++#define ASOC_DSP_NIOS_CTRL      0x0500
++
++#define ASOC_DSP_NIOS_CTRL_RST  0x00000001  // NIOS controller register - bit 0 RESET
++
++/**
++ * FPGA DMA and NIOS base addresses
++ */
++#define ASOC_DSP_NIOS_PROG      0x1000  // Area di memoria programma e dati del Nios
++//#define ASOC_DSP_NIOS_DATA      0x1000  // Area di memoria dati del Nios
++
++/**
++ * FPGA read and write DMA addresses
++ * Valori da sommare al Base Address della periferica per raggiungere le aree di memoria seguenti
++ */
++#define ASOC_DSP_DMA_BASE        0x2000
++#define ASOC_DSP_DMA_WR_BASE    (ASOC_DSP_DMA_BASE + 0x0000)  // DMA WR base address
++#define ASOC_DSP_DMA_RD_BASE    (ASOC_DSP_DMA_BASE + 0x1000)  // DMA RD base address
++
++/**
++ * FPGA DMA control register
++ */
++#define ASOC_DSP_DMA_WR_CONTROL    (ASOC_DSP_DMA_WR_BASE + 0x0800)
++#define ASOC_DSP_DMA_RD_CONTROL    (ASOC_DSP_DMA_RD_BASE + 0x0800)
++
++#define ASOC_DSP_DMA_CTRL_GO       0x00000001 //avvia il rispettivo DMA
++#define ASOC_DSP_DMA_CTRL_INT_EN   0x00000002 //abilita interrrupt del termine programma
++#define ASOC_DSP_DMA_CTRL_RST_INT  0x00000004 //reset dell'interrupt, Il bit è resettato anche da un go
++#define ASOC_DSP_DMA_CTRL_RST      0x00000008 //ferma il DMA e mette tutto in IDLE 
++
++/**
++ * FPGA DMA status register
++ */
++#define ASOC_DSP_DMA_RD_STATUS     (ASOC_DSP_DMA_RD_BASE + 0x0804)
++
++#define ASOC_DSP_INT_EN_RD      0x00000001 // Stato del Bit di Enable interrupt DMA RD
++#define ASOC_DSP_RUNNING_RD     0x00000002 // Lettura dati dal DSP in corso
++#define ASOC_DSP_EXE_BURST_RD   0x00000004 // Scrittura in DDR in corso
++#define ASOC_DSP_SP_WRITE_WR    0x00000008 // Scrittura dati sui DSP
++#define ASOC_DSP_INT_EN_WR      0x00000010 // Stato del Bit di Enable Interrupt
++#define ASOC_DSP_RUNNING_WR     0x00000020 // Scrittura dati dal DSP in corso
++#define ASOC_DSP_EXE_BURST_WR   0x00000040 // Scrittura in DDR in corso
++#define ASOC_DSP_SC_INT_WR      0x00000080 // Stato Del Pin di interrupt wr
++#define ASOC_DSP_SC_INT_RD      0x00000100 // Stato Del Pin di interrupt rd
++
++/**
++ * FPGA DMA pc init register
++ */
++#define ASOC_DSP_DMA_WR_PC_INIT    (ASOC_DSP_DMA_WR_BASE + 0x0808)
++#define ASOC_DSP_DMA_RD_PC_INIT    (ASOC_DSP_DMA_RD_BASE + 0x0808)
++
++
++/**
++ *  Opcode
++ *  3333333333222222222211111111110000000000
++ *  9876543210987654321098765432109876543210
++ *                                       ---  0  2 Src Address
++ *                                    ---     3  5 Src Increment
++ *                                 ---        6  8 Dst Address
++ *                              ---           9 11 Dst Increment
++ *          --------------------             12 31 nwords
++ *       ---                                 32 34 iter op
++ *  -----                                    35 39 Loop Address
++ *  
++ *  Src Address   : indice per l'accesso all'array src_addr
++ *  Src Increment : indice per l'accesso all'array src_incr
++ *  Dst Address   : indice per l'accesso all'array dst_addr
++ *  Dst Increment : indice per l'accesso all'array dst_incr
++ *  nwords        : Numero di word da trasferire diviso in busrt, NB l'ultimo burst può essere più corto     
++ *                  se è Es 1, locazione 1 degli iteratori decremento il contatore e avvio la lettura in busrt
++ *                  se Iter è zero  inizializzo il contatore al valore di reset e vado alla istruzione successiva,
++ *                  se diversa da zero vado direttamente all'istruzione puntata da loop address  
++ *                  l'iteratore particolare che è 7 che oltre a resettare il contatore ITER attende
++ *                  il ready della destinazone.
++ *  iter op       : se i tre bit sono zero eseguo un solo ciclo come se iteratore è zero.
++ *  Loop Address  : Da utilizzare come offset segnato           
++ *   
++ */
++typedef struct {
++  uint64_t  src_addr : 3;
++  uint64_t  src_incr : 3;
++  uint64_t  dst_addr : 3;
++  uint64_t  dst_incr : 3;
++  uint64_t  nwords   :20;
++  uint64_t  iter_op  : 3;
++  uint64_t  loop_addr: 5;
++  uint64_t  unused   :24;
++}sAsocDspDmaOpcode;
++
++/**
++ * DMA WRITING TO DSP READING FROM MEMORY 
++ * Src Address  : Parola intera 40Bit - 32dati 8burstLen
++ * Src Increment: parola da 40 divisa in due da 20 signed sull'ultimo busrt uso la secobda word di incremento
++ * Dst Address  : 
++ * Dst Increment:
++ * nwords       : Numero di word da trasferire diviso in busrt, NB l'ultimo burst può essere più corto
++ *                se è Es 1, locazione 1 degli iteratori decremento il contatore e avvio la lettura in busrt
++ *                se Iter è zero  inizializzo il contatore al valore di reset e vado alla istruzione successiva,
++ *                se diversa da zero vado direttamente all'istruzione puntata da loop address  
++ *                l'iteratore particolare che è 7 che oltre a resettare il contatore ITER attende il ready della destinazone.
++ * iter op      : se i tre bit sono zero eseguo un solo ciclo come se iteratore è zero.
++ * Loop Address : Da utilizzare come offset segnato
++ */
++typedef struct {
++  sAsocDspDmaOpcode opcode[128];
++  struct {
++    uint64_t        address   :30;
++    uint64_t        burst_size:10;
++  }                 src_addr[8]; 
++  struct {
++    uint64_t        brst_inc :20;
++    uint64_t        end_inc  :20;
++  }                 src_incr[8]; 
++  struct {
++    uint64_t        address0 :20;
++    uint64_t        address1 :20;
++  }                 dst_addr[8]; 
++  struct {
++    uint64_t        word_inc :13;
++    uint64_t        burst_inc:13;
++    uint64_t        end_inc  :13;
++  }                 dst_incr[8]; 
++  struct{
++    uint64_t        iter    :20;
++    uint64_t        iterrst :20;
++  }                 iter[8];
++}sAsocDspDmaWr;
++#define ASOC_DSP_DMA_WR_DEF_SIZE sizeof(sAsocDspDmaWr)
++
++/**	
++ * DMA READER FROM DSP WRITING TO MEMORY 
++ * Src Address  : Parola intera 40Bit - 32dati 8burstLen
++ * Src Increment: parola da 40 divisa in due da 20 signed sull'ultimo busrt uso la secobda word di incremento
++ * Dst Address  : 
++ * Dst Increment:
++ * nwords       : Numero di word da trasferire diviso in busrt, NB l'ultimo burst può essere più corto			
++ *                se è Es 1, locazione 1 degli iteratori decremento il contatore e avvio la lettura in busrt
++ *                se Iter è zero  inizializzo il contatore al valore di reset e vado alla istruzione successiva,
++ *                se diversa da zero vado direttamente all'istruzione puntata da loop address  
++ *                l'iteratore particolare che è 7 che oltre a resettare il contatore ITER attende il ready della destinazone.
++ * iter op      : se i tre bit sono zero eseguo un solo ciclo come se iteratore è zero.
++ * Loop Address : Da utilizzare come offset segnato
++ */
++typedef struct {
++  sAsocDspDmaOpcode opcode[128];
++  struct {
++    uint64_t        address :32;
++    uint64_t        unused  :8;
++  }                 src_addr[8]; 
++  struct {
++    uint64_t        word_inc :13;
++    uint64_t        burst_inc:13;
++    uint64_t        end_inc  :13;
++  }                 src_incr[8];
++  struct {
++    uint64_t        address   :30;
++    uint64_t        burst_size:10;
++  }                 dst_addr[8];
++  struct {
++    uint64_t        word_inc :20;
++    uint64_t        end_inc  :20;
++  }                 dst_incr[8]; 
++  struct{
++    uint64_t        iter    :20;
++    uint64_t        iterrst :20;
++  }                 iter[8];
++}sAsocDspDmaRd;
++
++#define ASOC_DSP_DMA_RD_DEF_SIZE sizeof(sAsocDspDmaRd)
++
++/**
++ */
++typedef struct {
++  uint8_t        *nios_prog;
++  uint32_t        prog_size;
++  uint8_t        *nios_data;
++  uint32_t        data_size;
++  sAsocDspDmaWr  *dma_wr;
++  uint32_t        dma_wr_size;
++  sAsocDspDmaRd  *dma_rd;
++  uint32_t        dma_rd_size;
++  void (*ptr_set)(uint32_t, uint32_t);
++}sAsocDspFilter;
++
++#endif  /* __ASOC_DSP_H */
