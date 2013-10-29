@@ -1,6 +1,5 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 SRC_URI += "file://0001-fbaltera-Add-module.patch"
-SRC_URI += "file://0003-altera-Add-V4L2-camera.patch"
 SRC_URI += "file://0004-added-support-for-asoc_dsp-driver.patch"
 
 PRINC := "${@int(PRINC) + 1}"
@@ -9,6 +8,7 @@ do_configure_append() {
 	sed -i 's\# CONFIG_INOTIFY_USER is not set\CONFIG_INOTIFY_USER=y\' .config
 	sed -i 's\# CONFIG_FB is not set\CONFIG_FB=y\' .config
 
+        grep CONFIG_ASOC_DSP .config || echo "CONFIG_ASOC_DSP=m" >> .config
 	grep CONFIG_FB .config || echo "CONFIG_FB=y" >> .config
 	grep CONFIG_FB_ALTERA .config || echo "CONFIG_FB_ALTERA=y" >> .config
 	grep CONFIG_FRAMEBUFFER_CONSOLE .config || echo "CONFIG_FRAMEBUFFER_CONSOLE=y" >> .config
@@ -138,6 +138,5 @@ do_configure_append() {
         grep CONFIG_FB_GOLDFISH .config || echo "CONFIG_FB_GOLDFISH=n" >> .config
         grep CONFIG_FB_SIMPLE .config || echo "# CONFIG_FB_SIMPLE is not set" >> .config
         grep CONFIG_CYPRESS_FIRMWARE .config || echo "# CONFIG_CYPRESS_FIRMWARE is not set" >> .config
-
 
 }

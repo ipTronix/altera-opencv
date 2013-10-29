@@ -11,6 +11,7 @@ DEPENDS = "python-numpy v4l-utils libav gtk+ libtool swig swig-native python jpe
 
 SRC_URI = "${SOURCEFORGE_MIRROR}/opencvlibrary/opencv-unix/${PV}/OpenCV-${PV}.tar.bz2 \
            file://opencv-fix-pkgconfig-generation.patch \
+           file://0002-add-asoc-dsp-support.patch \
 "
 
 SRC_URI[md5sum] = "c0a5af4ff9d0d540684c0bf00ef35dbe"

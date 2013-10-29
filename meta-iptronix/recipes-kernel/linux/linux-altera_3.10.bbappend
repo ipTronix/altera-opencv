@@ -131,12 +131,6 @@ do_configure_append() {
         grep CONFIG_FB_GOLDFISH .config || echo "CONFIG_FB_GOLDFISH=n" >> .config
         grep CONFIG_FB_SIMPLE .config || echo "# CONFIG_FB_SIMPLE is not set" >> .config
         grep CONFIG_CYPRESS_FIRMWARE .config || echo "# CONFIG_CYPRESS_FIRMWARE is not set" >> .config
-#        grep CONFIG_USB_ANNOUNCE_NEW_DEVICES .config || echo "CONFIG_USB_ANNOUNCE_NEW_DEVICES=y" >> .config
-#        sed -i 's\CONFIG_DWC_HOST_ONLY=y\# CONFIG_DWC_HOST_ONLY is not set\' .config
-#        sed -i 's\CONFIG_DWC_SLAVE=y\\' .config
-#        sed -i 's\CONFIG_USB_DWC_OTG=y\# CONFIG_USB_DWC_OTG is not set\' .config
-#        grep CONFIG_STAGING .config || echo "CONFIG_STAGING=y" >> .config
-#        grep CONFIG_DWC2 .config || echo "CONFIG_DWC2=y" >> .config
 
 
 }

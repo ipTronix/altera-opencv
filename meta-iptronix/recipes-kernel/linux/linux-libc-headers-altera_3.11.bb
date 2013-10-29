@@ -1,1 +1,1 @@
-require linux-libc-headers-altera-next.inc
+require linux-libc-headers-altera.inc
