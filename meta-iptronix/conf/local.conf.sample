@@ -264,8 +264,8 @@ PREFERRED_PROVIDER_u-boot-mkimage ?= "u-boot-mkimage-altera"
 PREFERRED_PROVIDER_linux-libc-headers ?= "linux-libc-headers-altera"
 PREFERRED_PROVIDER_linux-libc-headers-dev ?= "linux-libc-headers-altera"
 
-PREFERRED_VERSION_linux-altera ?= "3.10"
-PREFERRED_VERSION_linux-libc-headers-altera ?= "3.10"
+PREFERRED_VERSION_linux-altera ?= "3.11"
+PREFERRED_VERSION_linux-libc-headers-altera ?= "3.11"
 PREFERRED_VERSION_u-boot-altera ?= "2013.01.01"
 PREFERRED_VERSION_u-boot-mkimage-altera ?= "2013.01.01"
 
