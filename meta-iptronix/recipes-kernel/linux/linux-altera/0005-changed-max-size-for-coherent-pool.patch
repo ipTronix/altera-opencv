@@ -1,0 +1,25 @@
+From e9a7540bd114a459f383999bae47d19a9482b165 Mon Sep 17 00:00:00 2001
+From: pnndra <dario@iptronix.com>
+Date: Thu, 31 Oct 2013 16:50:08 +0100
+Subject: [PATCH] changed max size for coherent pool
+
+---
+ arch/arm/Kconfig |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 43594d5..97a4f4a 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -1763,7 +1763,7 @@ config FORCE_MAX_ZONEORDER
+ 	range 11 64 if ARCH_SHMOBILE
+ 	default "12" if SOC_AM33XX
+ 	default "9" if SA1111
+-	default "11"
++	default "13"
+ 	help
+ 	  The kernel memory allocator divides physically contiguous memory
+ 	  blocks into "zones", where each zone is a power of two number of
+-- 
+1.7.1
+

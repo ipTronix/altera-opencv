@@ -1,6 +1,8 @@
 FILESEXTRAPATHS_prepend := "${THISDIR}/${PN}:"
 SRC_URI += "file://0001-fbaltera-Add-module.patch"
 SRC_URI += "file://0004-added-support-for-asoc_dsp-driver.patch"
+SRC_URI += "file://0005-changed-max-size-for-coherent-pool.patch"
+SRC_URI += "file://0006-USB-HCD-support-giveback-of-URB-in-tasklet-context.patch"
 
 PRINC := "${@int(PRINC) + 1}"
 
